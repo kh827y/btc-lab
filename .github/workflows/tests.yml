@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py extended_history.py
+      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py extended_history.py history_store.py binance_daily.py
       - run: python -m unittest discover -s tests -v
       - name: Smoke test actual public archives
         run: |

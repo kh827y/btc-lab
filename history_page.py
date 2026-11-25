@@ -4,7 +4,9 @@ from urllib.request import Request, urlopen
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from history_logic import METRICS, PRICE, ETF, CVD, FULL_ETF, period_slice, series_for
+from history_logic import METRICS, PRICE, ETF, CVD, FULL_ETF, BINANCE_DAILY, period_slice, series_for
+from history_store import ROLLING, save_archive, saved_series, last_fetch, coverage
+import pandas as pd
 from extended_history import read_local, request_json, parse_etf, TFTC_URL
 
 BASE="https://raw.githubusercontent.com/kh827y/btc-market-data/main/"
@@ -26,6 +28,56 @@ def load_history(path):
     if len(raw)>LIMIT:raise ValueError("Архив слишком большой")
     return json.loads(raw.decode("utf-8-sig"))
 
+@st.cache_data(ttl=1800,show_spinner=False)
+def collect_rolling():
+    """Runs only while a Streamlit session is active; no background service."""
+    errors={}
+    for path in sorted(ROLLING):
+        try:save_archive(path,load_history(path))
+        except Exception as exc:errors[path]=type(exc).__name__
+    return errors
+
+def get_history_series(metric,doc=None):
+    path=METRICS[metric][0]
+    if path in ROLLING:
+        if doc is not None:save_archive(path,doc)
+        return saved_series(metric)
+    return series_for(metric,doc if doc is not None else load_history(path))
+
+def show_history_quality():
+    st.header("Качество истории")
+    st.caption("Проверка покрытия, не доказательство корректности методологии или доступности данных в момент сигнала. Пропуски считаются внутри ряда; для нерегулярных сессий календарь пока не проверяется.")
+    if not st.button("Проверить все исторические ряды",key="history_audit_run"):
+        st.info("Нажми кнопку, чтобы проверить все доступные архивы.")
+        return
+    rows=[]
+    docs={}
+    failures={}
+    for metric,(path,_,freq,unit,note) in METRICS.items():
+        row={"Показатель":metric,"Единица":unit}
+        try:
+            if path not in docs and path not in failures:
+                try:docs[path]=load_history(path)
+                except Exception as exc:failures[path]=type(exc).__name__
+            if path in failures and path not in ROLLING:raise ValueError(failures[path])
+            if path in ROLLING:
+                if path in docs:save_archive(path,docs[path])
+                s=saved_series(metric)
+            else:s=series_for(metric,docs[path])
+            info=coverage(s,freq)
+            row.update({"Наблюдений":info["observations"],"Пропусков":info["gaps"],
+                "Начало UTC":info["first"],"Конец UTC":info["last"],"Возраст последнего, д":info["lag_days"],
+                "Статус":("нет данных" if not info["observations"] else "локальная копия" if path in failures or docs.get(path,{}).get("offline_copy") else "есть пропуски" if info["gaps"] else "есть наблюдения")})
+        except Exception as exc:row["Статус"]="недоступно: "+type(exc).__name__
+        rows.append(row)
+    st.session_state["history_audit_rows"]=rows
+
+def render_history_quality():
+    show_history_quality()
+    if st.session_state.get("history_audit_rows"):
+        st.dataframe(pd.DataFrame(st.session_state["history_audit_rows"]),use_container_width=True,hide_index=True)
+        st.caption("Возраст — от даты наблюдения, не от даты публикации. Строка «есть наблюдения» не означает, что ряд пригоден для бэктеста.")
+
 def show_history(_brief=None):
     st.header("История рынка")
     st.caption("Данные из архивов агрегатора и дополнительных источников, UTC. Это визуальная проверка истории, не готовая выборка для бэктеста. Дата наблюдения не гарантирует дату публикации. Статус текущего снимка выше не подтверждает качество всей истории.")
@@ -38,11 +90,15 @@ def show_history(_brief=None):
     days={"7 дней":7,"30 дней":30,"90 дней":90,"1 год":365,"Вся история":None}[period]
     path,_,freq,unit,note=METRICS[metric]
     st.caption(note)
-    overlay=st.checkbox("Сопоставить с дневной ценой BTC",value=True,disabled=path==PRICE,key="history_overlay") and path!=PRICE
+    is_price=metric.startswith("Цена BTC")
+    overlay=st.checkbox("Сопоставить с дневной ценой BTC",value=True,disabled=is_price,key="history_overlay") and not is_price
     try:
         with st.spinner("Загрузка исторического архива…"):
-            archive=load_history(path)
-            full=series_for(metric,archive)
+            try:archive=load_history(path)
+            except Exception:
+                if path not in ROLLING:raise
+                archive=None
+            full=get_history_series(metric,archive)
             shown=period_slice(full,days)
     except FileNotFoundError:
         st.info("Локальный архив ещё не загружен. Запусти download_history.bat, затем нажми «Обновить сейчас».")
@@ -50,6 +106,9 @@ def show_history(_brief=None):
     except Exception as exc:
         st.error(f"Не удалось прочитать историю: {exc}")
         return
+    if path in ROLLING:
+        st.caption("Локально накопленная история. Последнее успешное получение: "+str(last_fetch(path) or "—"))
+        if archive is None:st.warning("Источник недоступен; показан ранее накопленный ряд.")
     if path.startswith("local/"):
         st.markdown(f"[Источник: {archive.get('source','—')}]({archive.get('url','')})")
         st.caption(f"Получено: {archive.get('downloaded_utc','—')}. Архив может содержать поздние ревизии.")
@@ -71,13 +130,14 @@ def show_history(_brief=None):
     price=None
     if overlay:
         try:
-            price=period_slice(series_for("Цена BTC · закрытие дня",load_history(PRICE)),days)
+            try:price=period_slice(series_for("Цена BTC · длинная история Binance",load_history(BINANCE_DAILY)),days)
+            except Exception:price=period_slice(series_for("Цена BTC · закрытие дня",load_history(PRICE)),days)
             price=price.loc[(price.index>=shown.index.min().floor("D"))&(price.index<=shown.index.max())]
             if price.dropna().empty:price=None
         except Exception as exc:
             st.warning(f"Сравнение с ценой недоступно: {exc}")
     fig=make_subplots(rows=2 if price is not None else 1,cols=1,shared_xaxes=True,vertical_spacing=.09,subplot_titles=[metric]+(["BTC · закрытие дня, USDT"] if price is not None else []))
-    if path in (CVD,ETF,FULL_ETF) or metric.startswith("Ликвидации"):
+    if path in (CVD,ETF,FULL_ETF) or metric.startswith(("Ликвидации","CVD")):
         fig.add_trace(go.Bar(x=shown.index,y=shown.tolist(),name=metric,marker_color=["#33c9a4" if v>=0 else "#f07f6c" for v in shown]),row=1,col=1)
     else:
         fig.add_trace(go.Scatter(x=shown.index,y=shown.tolist(),mode="markers" if freq is None else "lines",name=metric,connectgaps=False,line=dict(color="#33c9a4"),marker=dict(size=5)),row=1,col=1)

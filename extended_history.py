@@ -18,7 +18,7 @@ KOTE_BASE="https://kotecharts.com/api/v1/public/charts/"
 COIN_BASE="https://api.coinalyze.net/v1/"
 KOTE_FIELDS={"mvrv":("mvrv",),"mvrv-z-score":("mvrvZ",),"nupl":("nupl",),"sth-lth-sopr":("sthSopr","lthSopr")}
 COIN_FIELDS={"open-interest-history":("c",),"funding-rate-history":("c",),"liquidation-history":("l","s")}
-LOCAL_FILES={"local/tftc.json","local/coinalyze.json"}|{"local/kote-"+c+".json" for c in KOTE_FIELDS}
+LOCAL_FILES={"local/tftc.json","local/coinalyze.json","local/binance-spot.json"}|{"local/kote-"+c+".json" for c in KOTE_FIELDS}
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -158,6 +158,13 @@ def load_keys():
     if old:write_local(KEYS,old)
     return old
 
+def merge_local(old,new):
+    """Keep dates outside the new provider window; revisions replace overlaps."""
+    identity=("schema","source","chart","market","symbol","interval","url")
+    if any(old.get(k)!=new.get(k) for k in identity):raise ValueError("Archive identity changed; old file retained")
+    if set(old["series"])!=set(new["series"]):raise ValueError("Archive fields changed; old file retained")
+    return {**new,"series":{k:{**old["series"][k],**new["series"][k]} for k in new["series"]}}
+
 def sync():
     # Only local data; no git commands or credential output.
     keys=load_keys()
@@ -165,13 +172,17 @@ def sync():
     def job(name,filename,fn):
         try:
             doc=fn()
-            write_local(DATA/filename,doc)
+            target=DATA/filename
+            if target.exists():doc=merge_local(json.loads(target.read_text(encoding="utf-8")),doc)
+            write_local(target,doc)
             counts={k:sum(v is not None for v in r.values()) for k,r in doc["series"].items()}
             print(name,"OK",counts,flush=True)
         except Exception as exc:
             print(name,"FAILED",type(exc).__name__,str(exc) if isinstance(exc,(ValueError,RuntimeError)) else "",flush=True)
             errors.append(name)
     job("ETF","tftc.json",lambda:parse_etf(request_json(TFTC_URL)))
+    from binance_daily import download_daily
+    job("Binance daily price/CVD","binance-spot.json",download_daily)
     if keys.get("KOTE_API_KEY"):
         for chart in KOTE_FIELDS:
             job("Kote "+chart,"kote-"+chart+".json",lambda chart=chart:parse_kote(request_json(KOTE_BASE+chart,{"from":"2013-01-01","granularity":"day"},{"X-API-Key":keys["KOTE_API_KEY"]}),chart))
