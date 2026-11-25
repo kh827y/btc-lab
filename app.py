@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from history_page import show_history, load_history, collect_rolling, render_history_quality
+from depth_page import show_depth, load_depth
 
 from data_logic import (
     at, average_usable, cvd_value, formatted, hours_since, human_age, human_time, is_real_number,
@@ -696,6 +697,7 @@ PAGES = {
     "Макро": macro,
     "Стаканы": liquidity,
     "История": show_history,
+    "История стаканов": show_depth,
     "Качество истории": render_history_quality,
     "Качество данных": quality,
 }
@@ -712,6 +714,7 @@ if st.sidebar.button("Обновить сейчас"):
     fetch_remote.clear()
     load_history.clear()
     collect_rolling.clear()
+    load_depth.clear()
     st.rerun()
 st.sidebar.caption(f"Экран обновляется сам каждые {REFRESH_SECONDS // 60} мин. Время — {LOCAL_TZ_NAME}.")
 st.sidebar.caption("Наведи курсор на карточку, чтобы увидеть причину статуса.")
@@ -723,6 +726,12 @@ def live_view() -> None:
     if mode == "GitHub (онлайн)":
         errors=collect_rolling()
         if errors:st.caption(f"Не удалось обновить {len(errors)} скользящих архивов; локальная история сохранена.")
+    if page == "История стаканов":
+        if mode == "Локальный JSON":
+            st.info("Для архивов стаканов переключи источник на GitHub (онлайн).")
+            return
+        show_depth()
+        return
     if page == "Качество истории":
         if mode == "Локальный JSON":
             st.info("Для общей проверки переключи источник на GitHub (онлайн).")

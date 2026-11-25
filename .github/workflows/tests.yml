@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py extended_history.py history_store.py binance_daily.py
+      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py extended_history.py history_store.py binance_daily.py depth_history.py depth_page.py
       - run: python -m unittest discover -s tests -v
       - name: Smoke test actual public archives
         run: |
@@ -39,4 +39,28 @@ jobs:
               s=series_for(label,docs[path])
               assert not s.dropna().empty, label
               print(label, "observations", int(s.notna().sum()), "nulls", int(s.isna().sum()))
+          PY
+      - name: Check real L2 archives
+        run: |
+          python - <<'PY'
+          import json
+          from urllib.request import urlopen
+          from depth_history import MARKETS, archive_path, depth_frame, BANDS
+          docs={}
+          for market in MARKETS:
+              path=archive_path(market)
+              if path not in docs:
+                  with urlopen("https://raw.githubusercontent.com/kh827y/btc-market-data/main/"+path,timeout=40) as r:
+                      docs[path]=json.load(r)
+              counts={band:int(depth_frame(docs[path],market,band)["bid"].notna().sum()) for band in BANDS}
+              assert counts["0.01"]>0, market
+              print(market,counts)
+          PY
+      - name: Check live Binance daily backfill
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from binance_daily import download_daily
+          d=download_daily()
+          print("Binance valid days:",sum(v is not None for v in d["series"]["close_usdt"].values()),"rejected:",len(d["rejected_days"]))
           PY
