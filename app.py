@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from history_page import show_history, load_history
 
 from data_logic import (
     at, average_usable, cvd_value, formatted, hours_since, human_age, human_time, is_real_number,
@@ -694,6 +695,7 @@ PAGES = {
     "Опционы и ончейн": options_onchain,
     "Макро": macro,
     "Стаканы": liquidity,
+    "История": show_history,
     "Качество данных": quality,
 }
 
@@ -707,6 +709,7 @@ mode = st.sidebar.radio("Откуда брать данные", ["GitHub (онл
 local = st.sidebar.text_input("Путь к brief.json", value=str(CACHE), disabled=mode != "Локальный JSON")
 if st.sidebar.button("Обновить сейчас"):
     fetch_remote.clear()
+    load_history.clear()
     st.rerun()
 st.sidebar.caption(f"Экран обновляется сам каждые {REFRESH_SECONDS // 60} мин. Время — {LOCAL_TZ_NAME}.")
 st.sidebar.caption("Наведи курсор на карточку, чтобы увидеть причину статуса.")
@@ -715,6 +718,12 @@ st.sidebar.link_button("Репозиторий с данными", REPO_URL)
 
 @st.fragment(run_every=f"{REFRESH_SECONDS}s")
 def live_view() -> None:
+    if page == "История":
+        if mode == "Локальный JSON":
+            st.info("История пока читается только из публичных архивов GitHub. Переключи источник на GitHub (онлайн).")
+            return
+        show_history()
+        return
     doc, source, error = load(mode, local)
     if doc is None:
         st.error(error or "Нет доступных данных")

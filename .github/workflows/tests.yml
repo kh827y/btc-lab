@@ -1,0 +1,39 @@
+name: BTC Lab tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.py"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/tests.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py
+      - run: python -m unittest discover -s tests -v
+      - name: Smoke test actual public archives
+        run: |
+          python - <<'PY'
+          import json
+          from urllib.request import urlopen
+          from history_logic import METRICS,series_for
+          docs={}
+          for label,(path,*_) in METRICS.items():
+              if path not in docs:
+                  with urlopen("https://raw.githubusercontent.com/kh827y/btc-market-data/main/"+path,timeout=25) as r:
+                      docs[path]=json.load(r)
+              s=series_for(label,docs[path])
+              assert not s.dropna().empty, label
+              print(label, "observations", int(s.notna().sum()), "nulls", int(s.isna().sum()))
+          PY
