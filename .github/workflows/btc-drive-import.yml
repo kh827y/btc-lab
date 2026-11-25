@@ -1,0 +1,133 @@
+name: BTC Lab — import tested development
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: 'Job identifier from <job_id>.ready.json'
+        required: true
+        type: string
+permissions: {}
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone
+      - name: Download and validate candidate without executing its code
+        env:
+          JOB: ${{ inputs.job_id }}
+          RCLONE_CONFIG_BTCDRIVE_TYPE: drive
+          RCLONE_CONFIG_BTCDRIVE_TOKEN: ${{ secrets.BTC_DRIVE_TOKEN }}
+          RCLONE_CONFIG_BTCDRIVE_ROOT_FOLDER_ID: 1kK6epQmQLaPFJ1qn1uNfL8iDGo2zr52z
+        run: |
+          set -euo pipefail
+          [[ "$JOB" =~ ^[a-z0-9][a-z0-9-]{5,63}$ ]]
+          test -n "$RCLONE_CONFIG_BTCDRIVE_TOKEN"
+          mkdir -p "$RUNNER_TEMP/payload"
+          for ext in bundle ready.json; do
+            rclone copyto "btcdrive:inbox/$JOB.$ext" "$RUNNER_TEMP/payload/$JOB.$ext"
+          done
+          python .github/btc-sync/validate.py "$RUNNER_TEMP/payload" "$JOB"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-payload
+          path: ${{ runner.temp }}/payload/
+          retention-days: 2
+          overwrite: true
+          if-no-files-found: error
+  test:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: candidate-payload
+          path: ${{ runner.temp }}/payload
+      - name: Test in isolated container, without credentials or network
+        env:
+          JOB: ${{ inputs.job_id }}
+        run: |
+          set -euo pipefail
+          python .github/btc-sync/validate.py "$RUNNER_TEMP/payload" "$JOB"
+          mkdir -p "$RUNNER_TEMP/deps" "$RUNNER_TEMP/candidate"
+          cp requirements.txt "$RUNNER_TEMP/deps/"
+          printf '%s\n' 'FROM python:3.12-slim' 'COPY requirements.txt /tmp/requirements.txt' 'RUN pip install --no-cache-dir -r /tmp/requirements.txt' > "$RUNNER_TEMP/deps/Dockerfile"
+          docker build -q -t btc-lab-test "$RUNNER_TEMP/deps"
+          git archive refs/btc-sync/candidate | tar -xf - -C "$RUNNER_TEMP/candidate"
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 2g --cpus 2 --user "$(id -u):$(id -g)" -e PYTHONDONTWRITEBYTECODE=1 -v "$RUNNER_TEMP/candidate:/project:rw" -w /project btc-lab-test python -m unittest discover -s tests -v
+  publish:
+    needs: [prepare, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: candidate-payload
+          path: ${{ runner.temp }}/payload
+      - name: Publish only to review branch
+        env:
+          JOB: ${{ inputs.job_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python .github/btc-sync/validate.py "$RUNNER_TEMP/payload" "$JOB"
+          base=$(git rev-parse HEAD)
+          head=$(git rev-parse refs/btc-sync/candidate)
+          git fetch origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$base" || { echo 'Main changed; rebase by generating a new result'; exit 1; }
+          branch="btc-sync/$JOB"
+          existing=$(git ls-remote --heads origin "refs/heads/$branch" | cut -f1)
+          if [[ -n "$existing" ]]; then
+            test "$existing" = "$head" || { echo 'Existing review branch has different SHA'; exit 1; }
+          else
+            git push origin "refs/btc-sync/candidate:refs/heads/$branch"
+          fi
+          pr=$(gh pr list --head "$branch" --base main --state all --json url --jq '.[0].url // empty')
+          if [[ -z "$pr" ]]; then
+            pr=$(gh pr create --head "$branch" --base main --title "BTC Lab development: $JOB" --body "Base: $base. Candidate: $head. Isolated offline unit tests passed. Review the diff before merging.")
+          fi
+          printf '%s\n' "$pr" >> "$GITHUB_STEP_SUMMARY"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone
+      - name: Archive processed files after PR exists
+        env:
+          JOB: ${{ inputs.job_id }}
+          RCLONE_CONFIG_BTCDRIVE_TYPE: drive
+          RCLONE_CONFIG_BTCDRIVE_TOKEN: ${{ secrets.BTC_DRIVE_TOKEN }}
+          RCLONE_CONFIG_BTCDRIVE_ROOT_FOLDER_ID: 1kK6epQmQLaPFJ1qn1uNfL8iDGo2zr52z
+        run: |
+          set -euo pipefail
+          for ext in bundle ready.json; do
+            rclone copyto "$RUNNER_TEMP/payload/$JOB.$ext" "btcdrive:processed/$JOB.$ext" --ignore-times
+            rclone copyto "btcdrive:processed/$JOB.$ext" "$RUNNER_TEMP/check.$ext"
+            cmp "$RUNNER_TEMP/payload/$JOB.$ext" "$RUNNER_TEMP/check.$ext"
+          done
+          # Never delete a modified replacement from the inbox.
+          for ext in ready.json bundle; do
+            rclone copyto "btcdrive:inbox/$JOB.$ext" "$RUNNER_TEMP/inbox.$ext"
+            cmp "$RUNNER_TEMP/payload/$JOB.$ext" "$RUNNER_TEMP/inbox.$ext"
+          done
+          rclone deletefile "btcdrive:inbox/$JOB.ready.json" --drive-use-trash
+          rclone deletefile "btcdrive:inbox/$JOB.bundle" --drive-use-trash

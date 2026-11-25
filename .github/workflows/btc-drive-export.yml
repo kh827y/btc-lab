@@ -1,0 +1,38 @@
+name: BTC Lab — export source bundle
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: btc-lab-drive-export
+  cancel-in-progress: false
+jobs:
+  export:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install rclone
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone
+      - name: Export and verify
+        env:
+          RCLONE_CONFIG_BTCDRIVE_TYPE: drive
+          RCLONE_CONFIG_BTCDRIVE_TOKEN: ${{ secrets.BTC_DRIVE_TOKEN }}
+          RCLONE_CONFIG_BTCDRIVE_ROOT_FOLDER_ID: 1kK6epQmQLaPFJ1qn1uNfL8iDGo2zr52z
+        run: |
+          set -euo pipefail
+          test -n "$RCLONE_CONFIG_BTCDRIVE_TOKEN" || { echo 'Missing BTC_DRIVE_TOKEN'; exit 1; }
+          git bundle create "$RUNNER_TEMP/btc-lab.bundle" refs/heads/main
+          git bundle verify "$RUNNER_TEMP/btc-lab.bundle"
+          rclone copyto "$RUNNER_TEMP/btc-lab.bundle" btcdrive:source/btc-lab.bundle --ignore-times
+          rclone copyto btcdrive:source/btc-lab.bundle "$RUNNER_TEMP/readback.bundle"
+          cmp "$RUNNER_TEMP/btc-lab.bundle" "$RUNNER_TEMP/readback.bundle"
+          git rev-parse HEAD
+          sha256sum "$RUNNER_TEMP/btc-lab.bundle"
