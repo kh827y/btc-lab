@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py
+      - run: python -m py_compile app.py data_logic.py history_logic.py history_page.py extended_history.py
       - run: python -m unittest discover -s tests -v
       - name: Smoke test actual public archives
         run: |
@@ -28,8 +28,11 @@ jobs:
           import json
           from urllib.request import urlopen
           from history_logic import METRICS,series_for
-          docs={}
+          from extended_history import request_json,parse_etf,TFTC_URL
+          from history_logic import FULL_ETF
+          docs={FULL_ETF:parse_etf(request_json(TFTC_URL))}
           for label,(path,*_) in METRICS.items():
+              if path.startswith("local/") and path!=FULL_ETF:continue
               if path not in docs:
                   with urlopen("https://raw.githubusercontent.com/kh827y/btc-market-data/main/"+path,timeout=25) as r:
                       docs[path]=json.load(r)

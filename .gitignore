@@ -14,3 +14,7 @@ data/*
 *.sqlite
 *.sqlite3
 *.db
+
+# Local provider keys and data are never committed.
+data/provider_keys.json
+data/extended/

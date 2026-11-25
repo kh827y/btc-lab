@@ -11,11 +11,23 @@ ONCHAIN="btc-onchain/data/history.json"
 FRED="btc-macro/data/fred_history.json"
 OPTIONS="btc-options/data/derived_history.json"
 ETF="btc-macro/data/latest.json"
+FULL_ETF="local/tftc.json"
+COINALYZE="local/coinalyze.json"
 OI_VENUES={"Binance","Bybit","OKX","Gate.io","Hyperliquid"}
 CVD_VENUES=("binance","coinbase","okx","bybit","kraken")
 
 # label: file, path, frequency, unit, note
 METRICS={
+    "ETF США · полная история TFTC": (FULL_ETF,"series.net_flow_usd",None,"USD","The Commoner Bitcoin ETF Tracker by TFTC, CC BY 4.0; опубликованные сессии, возможны ревизии"),
+    "OI · Binance BTCUSDT · Coinalyze": (COINALYZE,"series.open-interest-history.c","D","USD","Один бессрочный контракт Binance BTCUSDT, USD close дневного интервала; не корзина пяти бирж"),
+    "Funding · Binance BTCUSDT · Coinalyze": (COINALYZE,"series.funding-rate-history.c","D","ед. API","Дневное close ряда funding от Coinalyze; не сумма расчётов за день и не подтверждённая нормализация 8h"),
+    "Ликвидации LONG · Binance · Coinalyze": (COINALYZE,"series.liquidation-history.l","D","USD","Binance BTCUSDT perpetual; наблюдаемые дневные ликвидации LONG"),
+    "Ликвидации SHORT · Binance · Coinalyze": (COINALYZE,"series.liquidation-history.s","D","USD","Binance BTCUSDT perpetual; наблюдаемые дневные ликвидации SHORT"),
+    "MVRV · Kote Charts": ("local/kote-mvrv.json","series.mvrv","D","отношение","Kote Charts; отдельная UTXO-методика, личное исследование"),
+    "MVRV Z-Score · Kote Charts": ("local/kote-mvrv-z-score.json","series.mvrvZ","D","z-score","Kote Charts; отдельная UTXO-методика"),
+    "NUPL · Kote Charts": ("local/kote-nupl.json","series.nupl","D","доля","Kote Charts; отдельная UTXO-методика"),
+    "STH SOPR · Kote Charts": ("local/kote-sth-lth-sopr.json","series.sthSopr","D","отношение","Kote Charts; UTXO 155 дней, не Bitview 150 дней"),
+    "LTH SOPR · Kote Charts": ("local/kote-sth-lth-sopr.json","series.lthSopr","D","отношение","Kote Charts; UTXO 155 дней, не Bitview 150 дней"),
     "Цена BTC · закрытие дня": (PRICE,"daily_closed","D","USDT","Binance BTCUSDT spot; закрытые дневные свечи"),
     "Объём спота Binance": (PRICE,"daily_closed","D","BTC","Объём закрытой дневной свечи"),
     "Открытый интерес · 5 бирж": (OI,"results.open_interest.daily_history","D","USD","Binance, Bybit, OKX, Gate.io, Hyperliquid; 23:00 UTC, только закрытые дни"),
@@ -119,6 +131,14 @@ def series_for(label, doc, now=None):
                 if None in (buy,sell,net) or min(buy,sell)<0 or abs(buy-sell-net)>max(.05,abs(net)*1e-8):break
                 values.append(net)
             add(hour,sum(values) if len(values)==len(CVD_VENUES) else None)
+    elif path.startswith("local/"):
+        expected="TFTC" if path==FULL_ETF else "Coinalyze" if path==COINALYZE else "Kote Charts"
+        if doc.get("schema")!=1 or doc.get("source")!=expected or not isinstance(raw,dict):raise ValueError("Неверный источник локального архива")
+        if path==COINALYZE and (doc.get("market")!="Binance BTCUSDT perpetual" or doc.get("interval")!="daily"):raise ValueError("Неверный рынок/интервал Coinalyze")
+        if expected=="Kote Charts" and doc.get("chart")!=path.removeprefix("local/kote-").removesuffix(".json"):raise ValueError("Неверный график Kote")
+        for day,value in raw.items():
+            ts=stamp(day,True)
+            if ts is not None and (path==FULL_ETF or ts<now.floor("D")):add(day,value,True)
     elif path==ETF:
         if not isinstance(raw,list):raise ValueError("Нет истории сессий ETF")
         for row in raw:
