@@ -51,8 +51,8 @@ def show_history(_brief=None):
         st.error(f"Не удалось прочитать историю: {exc}")
         return
     if path.startswith("local/"):
-        st.markdown(f"[Источник: {archive.get(\"source\",\"—\")}]({archive.get(\"url\",\"\")})")
-        st.caption(f"Получено: {archive.get(\"downloaded_utc\",\"—\")} UTC. Архив может содержать поздние ревизии.")
+        st.markdown(f"[Источник: {archive.get('source','—')}]({archive.get('url','')})")
+        st.caption(f"Получено: {archive.get('downloaded_utc','—')}. Архив может содержать поздние ревизии.")
         if archive.get("offline_copy"):st.warning("Сеть недоступна; используется последняя локальная копия ETF.")
     else:
         st.markdown(f"[Исходный файл](https://github.com/kh827y/btc-market-data/blob/main/{path})")
