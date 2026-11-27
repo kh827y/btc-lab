@@ -58,9 +58,13 @@ class ResearchPricesTest(unittest.TestCase):
            "core_mom_first_pct":"0.3","core_mom_forecast_id":"f",
            "core_mom_forecast_within_24h":"1","standard_intraday_timing_and_pair":"1",
            "event_note":""}
-        f,o,controls=prepare_event(e,[],self.p)
+        f,o,controls,delayed=prepare_event(e,[],self.p)
         self.assertEqual(f["core_mom_surprise_pp"],0.0)
-        self.assertEqual(f["primary_standard_sample_eligible"],0)
+        self.assertEqual(o["primary_standard_sample_eligible"],0)
+        self.assertNotIn("reaction_24h",f)
+        self.assertNotIn("entry_open",f)
+        self.assertNotIn("primary_standard_sample_eligible",f)
+        self.assertIn("reaction_24h",delayed)
         self.assertEqual(controls[0]["control_utc"],"2024-03-05T13:30:00+00:00")
 
 if __name__=="__main__":

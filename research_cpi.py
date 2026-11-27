@@ -142,13 +142,17 @@ def prepare_event(e, alternatives, prices):
                 "alternative_core_surprises_pp":"|".join(str(x) for x in alt),
                 "standard_intraday_timing":int(standard),"event_note":e["event_note"],
                 "prior_return_28d":ret28,"prior_vol_28d":vol28,
-                "reaction_30m":response,"entry_open":prices.point(entry,"open"),
-                "reaction_24h":prices.reaction(t,1440),
-                "delayed_entry_utc_ms":t+1441*MINUTE}
+                "reaction_30m":response}
+    # Execution prices are not predictors. Later decision inputs are separate.
+    delayed={"event_id":e["event_id"],"entry_utc_ms":t+1441*MINUTE,
+             "reaction_24h":prices.reaction(t,1440)}
+    entry_open=prices.point(entry,"open")
     r7,w7=bounded_outcome(prices,entry,7,split)
     r28,w28=bounded_outcome(prices,entry,28,split)
     late7,lateworst=bounded_outcome(prices,t+1441*MINUTE,7,split)
-    outcomes={"event_id":e["event_id"],"return_7d":r7,"worst_7d":w7,
+    outcomes={"event_id":e["event_id"],"entry_open":entry_open,
+              "delayed_entry_open":prices.point(t+1441*MINUTE,"open"),
+              "return_7d":r7,"worst_7d":w7,
               "return_28d":r28,"worst_28d":w28,"delayed_return_7d":late7,
               "delayed_worst_7d":lateworst}
     # Candidate windows only. A calendar is still needed to exclude other news.
@@ -162,9 +166,9 @@ def prepare_event(e, alternatives, prices):
                          "prior_return_28d":pr,"prior_vol_28d":pv,
                          "calendar_checked":0})
     eligible = standard and all(features[k] is not None for k in
-                     ("prior_return_28d","prior_vol_28d","reaction_30m","entry_open")) and r7 is not None
-    features["primary_standard_sample_eligible"]=int(eligible)
-    return features,outcomes,controls
+                     ("prior_return_28d","prior_vol_28d","reaction_30m")) and entry_open is not None and r7 is not None
+    outcomes["primary_standard_sample_eligible"]=int(eligible)
+    return features,outcomes,controls,delayed
 
 
 def write_csv(path, rows):
@@ -179,21 +183,22 @@ def write_csv(path, rows):
 def build(cpi_path, minute_root=ROOT, out=OUT):
     events, alternatives, cpi_hash=read_cpi(cpi_path)
     prices=MinutePrices.load(minute_root)
-    groups=defaultdict(lambda:{"features":[],"outcomes":[],"controls":[]})
+    groups=defaultdict(lambda:{"features":[],"outcomes":[],"controls":[],"delayed_features":[]})
     coverage=defaultdict(Counter)
     for e in events:
-        f,o,c=prepare_event(e,alternatives[e["event_id"]],prices)
+        f,o,c,d=prepare_event(e,alternatives[e["event_id"]],prices)
         split=f["split"]
         g=groups[split]
         g["features"].append(f);g["outcomes"].append(o);g["controls"].extend(c)
+        g["delayed_features"].append(d)
         q=coverage[split]
         q["events"]+=1
         q["standard"]+=f["standard_intraday_timing"]
-        q["primary_eligible"]+=f["primary_standard_sample_eligible"]
-        for k in ("prior_return_28d","prior_vol_28d","reaction_30m","entry_open"):
+        q["primary_eligible"]+=o["primary_standard_sample_eligible"]
+        for k in ("prior_return_28d","prior_vol_28d","reaction_30m"):
             q["missing_"+k]+=f[k] is None
         for k,v in o.items():
-            if k!="event_id":
+            if k not in ("event_id","primary_standard_sample_eligible"):
                 q["missing_"+k]+=v is None
         q["candidate_controls"]+=len(c)
         q["controls_with_prices"]+=sum(x["reaction_30m"] is not None for x in c)
@@ -209,7 +214,7 @@ def build(cpi_path, minute_root=ROOT, out=OUT):
     report={"complete":True,"protocol":"cpi-v1-preparation","cpi_sha256":cpi_hash,
             "price_provenance":prices.provenance,"coverage":dict(coverage),
             "file_sha256":files,"control_calendar_checked":False,
-            "independent_price_check":False,"test_results_opened_by_researcher":False,
+            "independent_price_check":False,"test_results_opened_by_this_script":False,
             "note":"Coverage only; no performance, no fitted models. Test files are local and not access-controlled."}
     json_write(out/"coverage.json",report)
     return report
