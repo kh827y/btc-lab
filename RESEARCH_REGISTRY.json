@@ -370,7 +370,7 @@
       {
         "id": "TREND-002",
         "kind": "descriptive_schedule_feasibility",
-        "status": "registered_pending_preflight",
+        "status": "descriptive_preflight_reviewed_pending_comparison",
         "decision_id": [
           "D1",
           "D3"
@@ -379,10 +379,12 @@
           "TREND_BREAK_PROTOCOL.md"
         ],
         "implementation_files": [
-          "research_trend_break.py"
+          "research_trend_break.py",
+          "research_trend_break_comparison.py"
         ],
         "local_reports": [
-          "data/research/trend_break_v1/trend_break_preflight.json"
+          "data/research/trend_break_v1/trend_break_preflight.json",
+          "data/research/trend_break_v1/trend_break_comparison.json"
         ],
         "evaluation_window": "Common history 2015-07-20..2023-12-31, separate Bitstamp sensitivity from 2012-01-01",
         "target_and_horizon": "Weekly break below or at MA50 after above; first subsequent above; schedule feasibility only at 28/90 days",
@@ -391,7 +393,70 @@
         "stopping_rule": "One immutable preflight; stop if no meaningful schedule variation or differences confined to one overlap cluster; no outcome code before review, no optimization or confirmation",
         "synthetic_gate_spec_and_result": "Not applicable to descriptive feasibility",
         "code_and_data_versions": "TREND-002-feasibility-v1; pinned BUY and early Bitstamp hashes",
-        "attempts": []
+        "attempts": [
+          {
+            "status": "preflight_completed_descriptive_comparison_approved",
+            "report_sha256": "f9f38050b2b3a2a82308c91f00446344af25461063dd15264aedd82227133727",
+            "result": {
+              "common_trigger_dates": 30,
+              "bitstamp": {
+                "eligible": [
+                  31,
+                  31
+                ],
+                "different_vs_fixed7": [
+                  24,
+                  24
+                ],
+                "different_clusters": [
+                  21,
+                  13
+                ],
+                "cash": [
+                  18,
+                  3
+                ]
+              },
+              "coinbase": {
+                "eligible": [
+                  31,
+                  31
+                ],
+                "different_vs_fixed7": [
+                  24,
+                  24
+                ],
+                "different_clusters": [
+                  21,
+                  13
+                ],
+                "cash": [
+                  18,
+                  3
+                ]
+              },
+              "early_bitstamp": {
+                "eligible": [
+                  47,
+                  46
+                ],
+                "different_vs_fixed7": [
+                  34,
+                  34
+                ],
+                "different_clusters": [
+                  30,
+                  19
+                ],
+                "cash": [
+                  24,
+                  5
+                ]
+              }
+            },
+            "interpretation": "Counts recomputed from episode rows. Variation present in every year 2016–2023, both venues; descriptive comparison justified, not statistical power or confirmation. Raw candles not independently replayed. No change to fixed signals, horizon, sample or fee."
+          }
+        ]
       }
     ]
   },
