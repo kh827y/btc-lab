@@ -165,3 +165,6 @@ update.bat, run_trend_recovery.bat. Пришли data/research/trend_recovery_v1
 
 ### TREND-002: проверка восстановления нарушенного тренда
 После update.bat запусти run_trend_break_preflight.bat. Отправь data/research/trend_break_v1/trend_break_preflight.json. Использует уже скачанную историю, без интернета и ключей. Сначала считает эпизоды, даты входа и перекрытие окон, не доходность или риск. Старые исследования и журналы не изменяются.
+
+### TREND-002: сравнение покупки после нарушения тренда
+После успешного preflight и update.bat запусти run_trend_break_comparison.bat. Скрипт проверит хэш рассмотренного preflight, повторит его расчёт дат и сравнит четыре заранее заданных способа покупки на общей дате оценки. Отправь data/research/trend_break_v1/trend_break_comparison.json. Интернет и ключи не нужны; старые отчёты не перезаписываются.
