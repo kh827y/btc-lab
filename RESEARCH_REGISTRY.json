@@ -220,7 +220,7 @@
       {
         "id": "OI-GATE-001",
         "kind": "synthetic_design_diagnostic",
-        "status": "registered_pending_run",
+        "status": "closed_not_passed",
         "decision_id": "D3",
         "protocol_files": [
           "OI_GATE_PROTOCOL.md"
@@ -238,7 +238,7 @@
         "minimum_useful_effect_and_rationale": "Illustrative .01 absolute Brier gain, not owner preference; statistical detection threshold independently calibrated",
         "data_and_availability": "Synthetic only, exact path oracle and t-5 label maturity; no real outcome access",
         "evaluation_and_dependence": "256 independent histories per fixed scenario; 28d overlapping labels, persistent regime and signal, Wilson95 on independent-history detections",
-        "synthetic_gate_spec_and_result": "Preregistered pending run; null upper <=.10, planted lower >=.80, oracle and fitted mean gain >=.01, reference adequacy; pass cannot authorize market confirmation",
+        "synthetic_gate_spec_and_result": "Completed, primary and both planning sensitivities failed overall; no market confirmation authorized.",
         "secondary_comparisons": [
           "Nested 156/260 origins for planning only",
           "strong effect .22",
@@ -247,7 +247,88 @@
         "stopping_rule": "One fixed run, preserve preflight/report; no retuning or confirmation authorized",
         "evaluation_window": "Artificial warmup136 weeks then fixed 86/156/260 weekly origins",
         "code_and_data_versions": "OI-GATE-001-synthetic-v1, fixed code/seeds; legacy batch fitter",
-        "attempts": []
+        "attempts": [
+          {
+            "status": "completed_not_passed",
+            "code_commit": "2d5ecb7a85d2da9570b089a5f8e54cb2e6ffcb23",
+            "ci_run": 46041409768,
+            "report_sha256": "f6587b2d35c59b841c86acb8e65ebe163a692d2cda9fdd6e3042817e17e6bbe5",
+            "result": {
+              "sizes": [
+                86,
+                156,
+                260
+              ],
+              "histories_per_scenario": 256,
+              "thresholds": [
+                0.007252364521205924,
+                0.004656974479876884,
+                0.0029483660392653314
+              ],
+              "null_detected": [
+                16,
+                9,
+                9
+              ],
+              "planted_detected": [
+                182,
+                212,
+                239
+              ],
+              "strong_detected": [
+                229,
+                250,
+                255
+              ],
+              "planted_oracle_expected_gain": [
+                0.023389341355194194,
+                0.023296215362909385,
+                0.02329913446968512
+              ],
+              "planted_mean_brier_gain": [
+                0.017029202798965175,
+                0.01720421115449037,
+                0.016813794076668786
+              ],
+              "null_baseline_brier": [
+                0.2656292462881409,
+                0.26593287848404795,
+                0.2660873125421771
+              ],
+              "null_scaled_reference_brier": [
+                0.25461013061882254,
+                0.2532638977057671,
+                0.25187295384845815
+              ],
+              "planted_scaled_reference_brier": [
+                0.25268728798536655,
+                0.2504826275918389,
+                0.24941159095936064
+              ],
+              "planted_challenger_brier": [
+                0.24586224511210347,
+                0.24591183534045244,
+                0.24556209377370405
+              ],
+              "detection_check": [
+                false,
+                false,
+                true
+              ],
+              "baseline_reference_check": [
+                false,
+                false,
+                false
+              ],
+              "synthetic_diagnostic_pass": [
+                false,
+                false,
+                false
+              ]
+            },
+            "interpretation": "Primary 86 origins insufficient detection; 156 point estimate above 80% but Wilson lower 77.7%; 260 detection criteria pass for this fixed large oracle effect only. Baseline fails both simple references in null and planted for every size. The positive effect is substantially larger than .01 so not power for .01. No repeat or tuning, no real historical OI confirmation. Future independent review should assess practical alternative to repeated classifier/gate development."
+          }
+        ]
       }
     ]
   },

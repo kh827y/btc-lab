@@ -38,3 +38,5 @@ Initial sequential controller is dry-run only. Model output remains advisory; th
 OI protocol design agent pilot reviewed, not registered confirmation. OI_FOLLOWUP_DRAFT.md records exact target and candidate comparator and unresolved MUE/power. OI source-readiness audit only, no outcome scoring or prospective forecasts; preserve original GATE-001 and all journals.
 
 OI-GATE-001 registered synthetic diagnostic only. Fixed stylized paths and price-correlated feature proxy, 86 primary origins; longer nested windows descriptive. Separate detection threshold from illustrative .01 gain, check oracle magnitude and baseline adequacy. No change to confirmation freeze regardless of result; no market outcomes, tuning, or user utility assumption.
+
+OI-GATE-001 failed and is closed. Do not rerun or tune to pass. Historical OI confirmation halted. Independent methodological review before any further OI design. Preserve prospective BUY/RISK journals and separate source readiness; no new factor forecast or investment utility claim.

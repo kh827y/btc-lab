@@ -145,3 +145,5 @@ First audit 14/14 passed, but latest completed Friday was Nov 20 (run before Nov
 
 ### OI-GATE-001
 `update.bat`, `run_oi_gate.bat`; send `data/research/oi_gate_v1/oi_gate_report.json`. If stopped, send console error and `oracle_preflight.json` if present. Fixed synthetic diagnostic, no real market data or keys; no repeat for pass. Existing Sunday journals unchanged. See OI_GATE_PROTOCOL.md.
+
+OI-GATE-001 completed, failed overall at every sample size. Do not rerun. No additional bat needed now; Sunday BUY/RISK issuance unchanged. See ROADMAP.md.
