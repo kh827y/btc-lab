@@ -40,6 +40,7 @@ class DeleverOutcomesTest(unittest.TestCase):
         rows=bars(673)
         rows[168]["spot"]["open"]=120
         a={"group":"contraction","entry_utc_ms":0,"7":measure(rows,0,7),"28":measure(rows,0,28)}
-        rows[168]["spot"]["open"]=90
+        # The second window starts at 120 and ends at 108 (-10%).
+        rows[336]["spot"]["open"]=108
         b={"group":"other","entry_utc_ms":168*HOUR,"7":measure(rows,0,7),"28":measure(rows,0,28)}
         self.assertAlmostEqual(compare([a,b])["median_wait_cost_difference"]["7"],.3)
