@@ -149,8 +149,11 @@ def inspect(raw, label, start, stop):
 def atomic_write(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_bytes(data)
-    tmp.replace(path)
+    try:
+        tmp.write_bytes(data)
+        tmp.replace(path)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def json_write(path, obj):

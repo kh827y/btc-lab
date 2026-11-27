@@ -18,3 +18,12 @@ data/*
 # Local provider keys and data are never committed.
 data/provider_keys.json
 data/extended/
+
+# Interrupted atomic writes, transient logs and local test/build artifacts.
+*.tmp
+*.log
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
