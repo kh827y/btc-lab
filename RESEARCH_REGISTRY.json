@@ -333,7 +333,7 @@
       {
         "id": "TREND-001",
         "kind": "descriptive_episode_comparison",
-        "status": "registered_pending_run",
+        "status": "closed_descriptive",
         "decision_id": [
           "D1",
           "D3"
@@ -359,7 +359,13 @@
         "synthetic_gate_spec_and_result": "Not applicable, descriptive only",
         "stopping_rule": "One report, no overwrite or optimization, no 2024+ outcome data",
         "code_and_data_versions": "TREND-001-descriptive-v1, pinned BUY CSV hashes",
-        "attempts": []
+        "attempts": [
+          {
+            "status": "completed",
+            "report_sha256": "3862b67a3e2c9ce053967a909d15891abaa867fd2634e4724941dab382705274",
+            "summary": "11 eligible of 14 per venue, MA200 identical to immediate, MA50 delayed five with one better and four worse terminal wealth. Bitstamp median terminal returns 45.68% immediate and 34.42% MA50. Coinbase near-zero intraday lows in March/April 2017 require source audit; do not silently adjust. Descriptive only; no crossover or general trend skill claim. Raw prices and CI not independently replayed."
+          }
+        ]
       }
     ]
   },
