@@ -95,3 +95,6 @@ VALUE: Kote MVRV 3652/3652 days 2014–2023, earliest 2013-01-01, local archive 
 
 ### FUND-001 / OI-001
 Funding archive complete 4383/4383, snapshot pinned (80b2346eebc93691361d025f9eb113462b58f0e7c6431344a5609668db030d5e). OI downloads only Friday metrics ZIP/checksum, 2020-09-04..2023-12-29, local archive, compare notional/quantity against Bitstamp same Friday range +/-10%. Date-only observations flagged, last timed positive row within 15min of Friday end, reject missing/invalid dates, no interpolation. Historical semantics not confirmed by Binance (issues #509/#211); reconstruction only. Reuse funding archive, don't overwrite previous datasets.
+
+
+OI first coverage 136/174, all rejected dates before 2021-05-28; prior failed coverage retained as coverage_before_parser_repair.json, valid cached ZIPs reused. Parser repair retains all checksum-verified ZIPs even if schema fails, no accepted snapshot until checks pass. Dense archives and consistent OI duplicates permitted, conflicting chosen timestamp rejected; 90% gate unchanged.

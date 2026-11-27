@@ -56,9 +56,11 @@ def parse_archive(raw,d):
             if not required<=set(reader.fieldnames or []) or len(set(reader.fieldnames))!=len(reader.fieldnames):
                 raise ValueError("Unexpected metrics header")
             rows=list(reader)
-    if not rows or len(rows)>400:
-        raise ValueError("Unexpected metrics row count")
-    seen=set();eligible=[];invalid=0
+    if not rows or len(rows)>10000:
+        raise ValueError(f"Unexpected metrics row count: {len(rows)}")
+    # The ZIP byte limit remains in force. Older archives can have a denser
+    # sampling cadence; row count alone says nothing about the Friday close.
+    seen={};eligible={};invalid=0;duplicates=0;conflicts=set()
     for r in rows:
         s=r["create_time"]
         if r["symbol"]!="BTCUSDT":
@@ -74,24 +76,31 @@ def parse_archive(raw,d):
             stamp=stamp.astimezone(timezone.utc)
             if stamp.date()!=d:
                 raise ValueError("Timestamp outside archive date")
-        if stamp in seen:
-            raise ValueError("Duplicate metrics time")
-        seen.add(stamp)
         try:
             q=float(r["sum_open_interest"]);v=float(r["sum_open_interest_value"])
         except (ValueError,TypeError):
+            q=v=None
+        pair=(q,v) if q is not None and all(math.isfinite(x) and x>0 for x in (q,v)) else None
+        if pair is None:
             invalid+=1
-            continue
-        if not all(math.isfinite(x) and x>0 for x in (q,v)):
-            invalid+=1
-            continue
-        if stamp is None or (stamp.hour==23 and stamp.minute>=45):
-            eligible.append((stamp,q,v))
+        if stamp in seen:
+            duplicates+=1
+            if seen[stamp]!=pair:
+                conflicts.add(stamp)
+        else:
+            seen[stamp]=pair
+        if pair is not None and (stamp is None or (stamp.hour==23 and stamp.minute>=45)):
+            eligible[stamp]=pair
     if not eligible:
         raise ValueError("No positive OI snapshot in final 15 minutes")
-    stamp,q,v=max(eligible,key=lambda r:r[0] or datetime.min.replace(tzinfo=timezone.utc))
+    stamp=max(eligible,key=lambda s:s or datetime.min.replace(tzinfo=timezone.utc))
+    # Do not pick a conflicting value or silently fall back to an earlier time.
+    if stamp in conflicts:
+        raise ValueError("Conflicting OI values at selected timestamp: "+str(stamp))
+    q,v=eligible[stamp]
     return {"date":d.isoformat(),"timestamp":stamp.isoformat() if stamp else None,
-            "quantity":q,"notional":v,"invalid_rows":invalid,"rows":len(rows)}
+            "quantity":q,"notional":v,"invalid_rows":invalid,"rows":len(rows),
+            "duplicate_rows":duplicates,"conflicting_timestamps":len(conflicts)}
 
 
 def get_archive(root,d,fetcher):
@@ -106,7 +115,8 @@ def get_archive(root,d,fetcher):
         raw=fetcher(url,LIMIT)
         if digest(raw)!=want:
             raise ValueError("OI checksum mismatch")
-        parse_archive(raw,d)
+        # Retain checksum-verified source bytes even if schema validation fails.
+        # Never use them for research until parse_archive and unit_check pass.
         info={"url":url,"sha256":want,"retrieved_utc":datetime.now(timezone.utc).isoformat()}
         atomic_write(p,raw);json_write(meta,info)
     return parse_archive(raw,d),info
@@ -120,12 +130,24 @@ def unit_check(row,price):
 
 def collect(root,prices,fetcher=fetch):
     result={};errors=[];files=[];date_only=[]
+    prior_path=root/"coverage.json"
+    original=root/"coverage_before_parser_repair.json"
+    if prior_path.exists() and not original.exists():
+        prior=json.loads(prior_path.read_bytes())
+        if prior.get("coverage_gate") is False:
+            atomic_write(original,prior_path.read_bytes())
+    prior_valid={}
+    if original.exists():
+        prior_valid={r["date"]:r for r in json.loads(original.read_bytes())["files"]}
     dates=list(friday_dates())
     for d in dates:
         try:
             row,info=get_archive(root,d,fetcher)
             if d not in prices or not unit_check(row,prices[d]):
                 raise ValueError("Implied OI valuation outside BTC daily range +/-10%")
+            old=prior_valid.get(d.isoformat())
+            if old is not None and any(old[k]!=row[k] for k in ("timestamp","quantity","notional")):
+                raise ValueError("Previously accepted observation changed")
             result[d]=row["quantity"]
             if row["timestamp"] is None:
                 date_only.append(d.isoformat())
@@ -137,7 +159,9 @@ def collect(root,prices,fetcher=fetch):
         time.sleep(.1)
     quality={"source":"Binance BTCUSDT USD-M daily metrics; Friday observations",
              "expected":len(dates),"valid":len(result),"files":files,"errors":errors,
-             "date_only":date_only,"coverage_gate":len(result)>=.90*len(dates)}
+             "date_only":date_only,"coverage_gate":len(result)>=.90*len(dates),
+             "parser_revision":2,"previously_valid":len(prior_valid),
+             "previously_valid_retained":sum(d.isoformat() in prior_valid for d in result)}
     p=root/"oi_snapshot.json"
     snapshot={d.isoformat():v for d,v in sorted(result.items())}
     if quality["coverage_gate"]:
