@@ -36,3 +36,5 @@ DVOL-001 closed descriptive. Initial local agent interface exposes only read-onl
 Initial sequential controller is dry-run only. Model output remains advisory; the controller cannot authorize studies, modify registry, launch gates, or execute model-generated instructions. Evidence reference validation is structural, not factual proof. Real provider transport and cost budget require a separate approved launch.
 
 OI protocol design agent pilot reviewed, not registered confirmation. OI_FOLLOWUP_DRAFT.md records exact target and candidate comparator and unresolved MUE/power. OI source-readiness audit only, no outcome scoring or prospective forecasts; preserve original GATE-001 and all journals.
+
+OI-GATE-001 registered synthetic diagnostic only. Fixed stylized paths and price-correlated feature proxy, 86 primary origins; longer nested windows descriptive. Separate detection threshold from illustrative .01 gain, check oracle magnitude and baseline adequacy. No change to confirmation freeze regardless of result; no market outcomes, tuning, or user utility assumption.

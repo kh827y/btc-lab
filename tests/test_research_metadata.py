@@ -17,6 +17,7 @@ class MetadataTest(unittest.TestCase):
         self.assertFalse(s["registry"]["confirmation_authorized"])
         self.assertEqual(s["study"]["moderate_detected"],[37,40])
         self.assertEqual(s["study"]["status"],"closed_not_passed")
+        self.assertNotIn("OI-GATE-001",raw.decode())
         self.assertNotIn("sha256",raw.decode())
         self.assertNotIn("github.com",raw.decode())
         self.assertNotIn("data/research",raw.decode())

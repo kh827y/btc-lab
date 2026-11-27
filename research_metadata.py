@@ -52,9 +52,9 @@ def boolean(value):
 
 
 def capture(root=ROOT):
-    """Trusted local step before approval/network. Strict projection, not redaction of free text."""
+    """Trusted local step before approval/network. Export only the original approved study IDs."""
     obj,rows=registry(root)
-    require(set(rows)==set(STUDY_IDS),"Study inventory changed; review export allowlist")
+    require(set(STUDY_IDS)<=set(rows),"Approved study missing; review export allowlist")
     require(obj["new_study_policy"]["status"]=="screening_frozen","Research policy changed")
     gate=rows["GATE-001"]
     require(gate["status"]=="closed_not_passed" and len(gate["attempts"])==1,

@@ -216,6 +216,38 @@
             "summary": "1005/1005 daily DVOL observations, 139 common 30-day forecasts per market, no missing. QLIKE recomputed on every observation; DVOL lower QLIKE each year, higher overall volatility MAE and positive mean bias. Descriptive reference only; raw source pages and candles not independently replayed."
           }
         ]
+      },
+      {
+        "id": "OI-GATE-001",
+        "kind": "synthetic_design_diagnostic",
+        "status": "registered_pending_run",
+        "decision_id": "D3",
+        "protocol_files": [
+          "OI_GATE_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_oi_gate.py"
+        ],
+        "local_reports": [
+          "data/research/oi_gate_v1/oracle_preflight.json",
+          "data/research/oi_gate_v1/oi_gate_report.json"
+        ],
+        "primary_comparison": "86 weekly origins: price-state ridge vs identical ridge plus price-correlated OI feature proxy; independent null calibration/validation and fixed planted effect .16",
+        "baseline": "5 price features, fixed legacy ridge, last104 matured min52; expanding empirical and scaled empirical reference adequacy",
+        "target_and_horizon": "Synthetic daily-low/endpoint open barrier -15% from entry over 28 days",
+        "minimum_useful_effect_and_rationale": "Illustrative .01 absolute Brier gain, not owner preference; statistical detection threshold independently calibrated",
+        "data_and_availability": "Synthetic only, exact path oracle and t-5 label maturity; no real outcome access",
+        "evaluation_and_dependence": "256 independent histories per fixed scenario; 28d overlapping labels, persistent regime and signal, Wilson95 on independent-history detections",
+        "synthetic_gate_spec_and_result": "Preregistered pending run; null upper <=.10, planted lower >=.80, oracle and fitted mean gain >=.01, reference adequacy; pass cannot authorize market confirmation",
+        "secondary_comparisons": [
+          "Nested 156/260 origins for planning only",
+          "strong effect .22",
+          "oracle/reference and distribution diagnostics"
+        ],
+        "stopping_rule": "One fixed run, preserve preflight/report; no retuning or confirmation authorized",
+        "evaluation_window": "Artificial warmup136 weeks then fixed 86/156/260 weekly origins",
+        "code_and_data_versions": "OI-GATE-001-synthetic-v1, fixed code/seeds; legacy batch fitter",
+        "attempts": []
       }
     ]
   },

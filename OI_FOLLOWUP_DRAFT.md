@@ -16,3 +16,5 @@ research_oi_readiness.py is a separate deterministic tool, no LLM, no keys, no m
 Run update.bat, run_oi_readiness.bat; send only oi_readiness_report.json from data/research/oi_readiness_v1/<UTC-run>/, not raw archives or key file. No paid requests. Actual latest source access not confirmed until run.
 
 First source audit completed 27 Nov 17:16 UTC, 14/14 through 20 Nov. Report digest and recomputed feature documented in ROADMAP.md. No evidence yet of latest Friday archive available before Monday: last related Monday was 23 Nov, already past. Existing risk launcher now collects independent OI readiness after successful issue. Keep BUY/RISK forecast receipts on time regardless of OI. No extra manual weekly launch. No predictions or market confirmation authorized.
+
+OI-GATE-001 diagnostic registered separately in OI_GATE_PROTOCOL.md; illustrative effect convention only, no owner MUE or actual confirmation. Candidate price comparator fixed for synthetic use, not selected on real outcomes. Source readiness remains pending fresh Friday availability.

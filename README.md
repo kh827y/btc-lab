@@ -142,3 +142,6 @@ Agent protocol v2 reviewed; do not repeat paid pilot. `update.bat`, `run_oi_read
 
 ### OI source readiness follow-up
 First audit 14/14 passed, but latest completed Friday was Nov 20 (run before Nov 27 UTC close). For Nov 29: existing `run_risk_journal.bat` now runs independent OI availability check **after** saving risk forecast; no extra command or paid API. Send BUY and RISK forecast files before Monday 00 UTC even if OI fails; also send the new `oi_readiness_report.json` if produced. Do not send local key or raw archives. Forecast generation and anchoring unchanged.
+
+### OI-GATE-001
+`update.bat`, `run_oi_gate.bat`; send `data/research/oi_gate_v1/oi_gate_report.json`. If stopped, send console error and `oracle_preflight.json` if present. Fixed synthetic diagnostic, no real market data or keys; no repeat for pass. Existing Sunday journals unchanged. See OI_GATE_PROTOCOL.md.

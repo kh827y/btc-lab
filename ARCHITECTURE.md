@@ -125,3 +125,5 @@ OI protocol v2 uses a second fixed host-only transport schedule (worker draft, o
 research_oi_readiness.py — separate source-readiness audit, latest 14 completed Fridays, checked Binance archives and approximate price unit check; unique local source record/report. Reuses oi_feature and source helpers without altering old parser/cutoff. No outcome data access for scoring or agent invocation.
 
 Risk journal launcher also runs the independent OI readiness audit after successful forecast issuance; forecast code, receipts and ledgers unchanged. No OI model, no scoring, no additional agent.
+
+research_oi_gate.py — registered synthetic OI-feature design diagnostic, daily price proxy paths, fixed rolling matched ridge fits, exact finite-path oracle, independent null calibration, reference checks and per-history uncertainty. No real data, paid calls or confirmation authorization. Metadata pilot only exports original approved IDs; extra local studies are not exported.
