@@ -34,3 +34,5 @@ RISK-001 closed descriptive. Historical OI confirmation deferred pending a study
 DVOL-001 closed descriptive. Initial local agent interface exposes only read-only registry/study summaries, allowlisted report byte identity and local journal status. No automatic registration, execution or authorization. Historical confirmation remains blocked pending study-specific gate. Future controller must expose dispatch operations only, not underlying Python functions, trusted host parameters, files, shell or arbitrary URLs.
 
 Initial sequential controller is dry-run only. Model output remains advisory; the controller cannot authorize studies, modify registry, launch gates, or execute model-generated instructions. Evidence reference validation is structural, not factual proof. Real provider transport and cost budget require a separate approved launch.
+
+OI protocol design agent pilot reviewed, not registered confirmation. OI_FOLLOWUP_DRAFT.md records exact target and candidate comparator and unresolved MUE/power. OI source-readiness audit only, no outcome scoring or prospective forecasts; preserve original GATE-001 and all journals.

@@ -136,3 +136,6 @@ DVOL completed. After update.bat, from the project folder use `.venv\Scripts\pyt
 Вместо Windows Credential Manager используется `data/.cheapvibecode_key` (открытый текст, игнорируется Git). `update.bat`, `run_agent_protocol.bat`, `y`, при первом запуске ключ. Пришли JSON из `data/research/agent_protocol/`. Не отправляй файл ключа. Резерв 300000, не гарантированный расход. Только проект протокола, без запуска исследования. `--preview` без сети.
 
 **Актуально:** подтверждение `1`, отказ `0` (или Enter). `update.bat`, `run_agent_protocol.bat`: DeepSeek draft, затем отдельное предложение платной критики Sol. Можно отказаться и прислать черновик из `data/research/agent_protocol/` для ручной проверки. Старый запуск не повторять. Резерв 200000, не гарантия списания.
+
+### OI source readiness
+Agent protocol v2 reviewed; do not repeat paid pilot. `update.bat`, `run_oi_readiness.bat`, send `data/research/oi_readiness_v1/<UTC-run>/oi_readiness_report.json`. Public data only, no API key or LLM. No market scoring or new forecast. Existing BUY/RISK journal schedule unchanged; see OI_FOLLOWUP_DRAFT.md.

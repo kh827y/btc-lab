@@ -121,3 +121,5 @@ research_credentials.py — host-only Windows Credential Manager adapter; no pla
 research_credentials.py now uses a project-local ignored plaintext key file instead of Windows Credential Manager. research_protocol_design.py — fixed OI protocol proposal, curated static evidence, three model calls, zero tools, strict schema, advisory only; no execution or registration.
 
 OI protocol v2 uses a second fixed host-only transport schedule (worker draft, optional supervisor critique). No plan call; saved draft remains available on review failure/decline. All paid confirmations via 1/0.
+
+research_oi_readiness.py — separate source-readiness audit, latest 14 completed Fridays, checked Binance archives and approximate price unit check; unique local source record/report. Reuses oi_feature and source helpers without altering old parser/cutoff. No outcome data access for scoring or agent invocation.
