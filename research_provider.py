@@ -1,6 +1,5 @@
 """Owner-launched CheapVibeCode smoke test, fictional evidence only."""
 import argparse
-import getpass
 import json
 import ssl
 from datetime import datetime,timezone
@@ -8,6 +7,7 @@ from pathlib import Path
 from urllib.request import Request,build_opener,HTTPSHandler,HTTPRedirectHandler,ProxyHandler
 from urllib.error import HTTPError
 
+from research_credentials import approve,get_key,CredentialError
 from research_controller import run,encode,ControllerError,require,STAGES,strict_object
 
 ENDPOINT="https://ru.cheapvibecode.ru/v1/chat/completions"
@@ -230,22 +230,18 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--live-smoke",action="store_true",required=True)
     p.add_argument("--budget-units",type=int,default=DEFAULT_BUDGET)
+    p.add_argument("--replace-key",action="store_true",help="Replace the saved Windows credential")
     a=p.parse_args()
     if not 0<a.budget_units<=MAX_BUDGET:
         p.error("Budget must be 1..500000 estimated base units")
     print("Paid synthetic pilot, max 3 calls. Estimated base-unit cap:",a.budget_units)
     print("Not a provider-side spending limit. Check balance before/after.")
-    if input("Type YES to approve this paid pilot: ")!="YES":
+    if not approve("Approve this paid pilot?"):
         p.exit(0,"Cancelled\n")
-    # getpass may fall back to echoed input on incompatible terminals;
-    # refuse that fallback instead of exposing the key.
-    import warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter("error",getpass.GetPassWarning)
-        try:
-            key=getpass.getpass("CheapVibeCode API key: ")
-        except getpass.GetPassWarning:
-            p.exit(1,"Hidden key input unavailable; use a normal terminal.\n")
+    try:
+        key=get_key(replace=a.replace_key)
+    except CredentialError as exc:
+        p.exit(1,str(exc)+"\n")
     try:
         t=CheapTransport(key,a.budget_units)
     except ControllerError:

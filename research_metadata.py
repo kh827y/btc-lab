@@ -1,11 +1,10 @@
 """Owner-reviewed, minimized real metadata pilot. No model-directed filesystem reads."""
 import argparse
-import getpass
 import json
 import math
-import warnings
 from pathlib import Path
 
+from research_credentials import approve,get_key,CredentialError
 from research_controller import run,encode,require,ControllerError
 from research_provider import CheapTransport,DEFAULT_BUDGET,MAX_BUDGET,save
 from research_tools import ROOT,registry,dispatch
@@ -130,6 +129,7 @@ def main():
     modes.add_argument("--preview",action="store_true")
     modes.add_argument("--live-review",action="store_true")
     p.add_argument("--budget-units",type=int,default=DEFAULT_BUDGET)
+    p.add_argument("--replace-key",action="store_true",help="Replace the saved Windows credential")
     a=p.parse_args()
     if not 0<a.budget_units<=MAX_BUDGET:
         p.error("Budget must be 1..500000 estimated base units")
@@ -145,14 +145,12 @@ def main():
         return 0
     print("Paid review, max 3 requests. Estimated base-unit cap:",a.budget_units)
     print("Provider may retain the above metadata. Budget is not a provider-side hard limit.")
-    if input("Type YES to approve this data scope and paid run: ")!="YES":
+    if not approve("Approve this data scope and paid run?"):
         p.exit(0,"Cancelled. No network request made.\n")
-    with warnings.catch_warnings():
-        warnings.simplefilter("error",getpass.GetPassWarning)
-        try:
-            key=getpass.getpass("CheapVibeCode API key: ")
-        except getpass.GetPassWarning:
-            p.exit(1,"Hidden key input unavailable.\n")
+    try:
+        key=get_key(replace=a.replace_key)
+    except CredentialError as exc:
+        p.exit(1,str(exc)+"\n")
     try:
         t=CheapTransport(key,a.budget_units)
     except ControllerError:

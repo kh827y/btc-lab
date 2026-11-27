@@ -123,9 +123,11 @@ DVOL completed. After update.bat, from the project folder use `.venv\Scripts\pyt
 После update.bat: `.venv\Scripts\python.exe research_controller.py --dry-run`. Тестовые ответы, 4 локальные read-only операции, никакой сети или расходов. Реальные модели пока не подключены; см. AGENT_CONTROLLER.md.
 
 ### Первый реальный API pilot
-`update.bat`, `run_agent_smoke.bat`, YES, затем ключ скрыто в консоли. Только вымышленные данные, не реальные журналы или архивы. Пришли новый JSON из `data/research/agent_smoke/` и изменение баланса, не ключ. При ошибке не повторяй. 200000 — расчётный резерв базовых токенов, не гарантия списания. См. AGENT_CONTROLLER.md.
+`update.bat`, `run_agent_smoke.bat`, y, затем ключ скрыто в консоли. Только вымышленные данные, не реальные журналы или архивы. Пришли новый JSON из `data/research/agent_smoke/` и изменение баланса, не ключ. При ошибке не повторяй. 200000 — расчётный резерв базовых токенов, не гарантия списания. См. AGENT_CONTROLLER.md.
 
 Тариф аккаунта уточнён после первого успешного pilot: x5 при output > input; в резерве x5 для обеих моделей. Повторный тест не нужен. Реальные данные пока не передаются.
 
 ### Проверка реальных метаданных
-`update.bat`, `run_agent_review.bat`. Сначала показывается точный ограниченный снимок данных, затем YES для разрешения передачи и платного запуска; ключ вводится скрыто. Без согласия сеть не используется. Прислать JSON из `data/research/agent_review/` и списание. Только статусы/итоги GATE/целостность без хешей/счётчики журналов. Без файлов, терминала, прогнозов и новых исследований. Для просмотра без оплаты: `.venv\Scripts\python.exe research_metadata.py --preview`. См. AGENT_CONTROLLER.md.
+`update.bat`, `run_agent_review.bat`. Сначала показывается точный ограниченный снимок данных, затем y для разрешения передачи и платного запуска; ключ вводится скрыто. Без согласия сеть не используется. Прислать JSON из `data/research/agent_review/` и списание. Только статусы/итоги GATE/целостность без хешей/счётчики журналов. Без файлов, терминала, прогнозов и новых исследований. Для просмотра без оплаты: `.venv\Scripts\python.exe research_metadata.py --preview`. См. AGENT_CONTROLLER.md.
+
+Подтверждение `y`; первый ввод ключа сохраняется в диспетчере учётных данных Windows. Следующие запуски используют сохранённый ключ. Удалить: `.venv\Scripts\python.exe research_credentials.py --forget`. Заменить: `.venv\Scripts\python.exe research_metadata.py --live-review --replace-key`. Повторять metadata pilot не нужно.

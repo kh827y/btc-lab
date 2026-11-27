@@ -115,3 +115,5 @@ research_controller.py — host-side sequential three-call controller with stric
 research_provider.py — separate owner-launched synthetic-only CheapVibeCode transport, fixed routes, bounded requests and responses, estimated base-unit reservation, usage validation, no retry/redirect, ephemeral key. No real registry or journal reads in pilot. No provider-side spending guarantee.
 
 research_metadata.py — fixed local projection and preview before explicit paid consent; frozen in-memory tool results, no model-directed filesystem access, limited enumerated fields only. Separate real-metadata pilot reuses controller/provider. No raw outcomes, paths, receipts or hashes exported; no execution or new research authorization.
+
+research_credentials.py — host-only Windows Credential Manager adapter; no plaintext fallback or model access. Paid confirmation before retrieval; fixed credential target, replace/delete support. No keys in Git/report. Not a defense against malicious same-user processes.
