@@ -92,3 +92,6 @@ FLOW daily snapshot 2327/2328, malformed 2018-02-08; all 256 evaluation origins 
 
 ### VALUE-001 / FUND-001
 VALUE: Kote MVRV 3652/3652 days 2014–2023, earliest 2013-01-01, local archive source SHA-256 639d1d08f776ae8df1eb9ba1c1ec44e2f7187c3ce66195d18b3c6bf0d2b78554; development snapshot 2066c92e0d9001ddfd57e3c887988f1efa0fbe572fa20a750cb86e1df6fbf1cb. No vintage proof. FUND: new official Binance public monthly fundingRate archives, 2020-01..2023-12, original ZIP/checksums, 8h slots and actual timestamps, no interpolation, coverage not verified until local run. Local only, no keys. OI not included.
+
+### FUND-001 / OI-001
+Funding archive complete 4383/4383, snapshot pinned (80b2346eebc93691361d025f9eb113462b58f0e7c6431344a5609668db030d5e). OI downloads only Friday metrics ZIP/checksum, 2020-09-04..2023-12-29, local archive, compare notional/quantity against Bitstamp same Friday range +/-10%. Date-only observations flagged, last timed positive row within 15min of Friday end, reject missing/invalid dates, no interpolation. Historical semantics not confirmed by Binance (issues #509/#211); reconstruction only. Reuse funding archive, don't overwrite previous datasets.

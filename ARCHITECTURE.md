@@ -89,3 +89,5 @@ research_flow.py — изолированный development-only FLOW-001, фи�
 research_value.py — development-only valuation reconstruction, local Kote MVRV, pinned prefix snapshot, 28/90d matched probability comparisons and descriptive valuation bands, 3/8-day offsets. Reuses BUY features/labels/logistic/interval, no frozen files changed, no new credentials/network. Historical vintages not proven.
 
 research_fund.py — isolated development-only settled funding study; reuse original Binance checksum/ZIP helpers and BUY feature/label/logistic/interval, fixed monthly archive prefix, exact 21 settlement feature, matched comparison, data/research/fund_v1; no original frozen files modified.
+
+research_oi.py — isolated weekly OI reconstruction, verified original ZIPs, conservative Friday timestamps, notional/quantity sanity check, fixed relative OI feature plus existing pinned funding. Shared BUY/FUND calculations, matched sample, local reports only. No final outcomes accessed.

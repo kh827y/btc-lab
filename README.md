@@ -83,3 +83,6 @@ ETF TFTC открывается в разделе История без ключ
 
 ### FUND-001
 После update.bat запусти run_fund_development.bat. Загружает небольшие месячные Binance funding ZIP и CHECKSUM, использует прежние USD CSV. Пришли data/research/fund_v1/fund_development_report.json, при ошибке покрытия — coverage.json. VALUE development завершён, MVRV остаётся кандидатом для дополнительной проверки. См. FUND_PROTOCOL.md. Ключи не нужны.
+
+### OI-001
+`update.bat`, `run_oi_development.bat`. Скачивает только пятничные Binance metrics ZIP/checksums, использует уже полученный funding_snapshot.json и USD цены. Пришли data/research/oi_v1/oi_development_report.json, при ошибке покрытия — coverage.json или текст ошибки. Первичная загрузка примерно 174 небольших ZIP с проверками, не требуются API keys. FUND development завершён. См. OI_PROTOCOL.md.
