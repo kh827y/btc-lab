@@ -185,7 +185,7 @@
       {
         "id": "DVOL-001",
         "kind": "data_audit_and_descriptive_reference",
-        "status": "registered_pending_run",
+        "status": "closed_descriptive",
         "decision_id": "D3",
         "protocol_files": [
           "DVOL_PROTOCOL.md"
@@ -207,7 +207,15 @@
           "year and exchange"
         ],
         "stopping_rule": "Coverage gate first, no fit or selection, one report, no post-2023 numeric prices",
-        "attempts": []
+        "attempts": [
+          {
+            "status": "completed",
+            "report_sha256": "fc4d0fb23d326eea03a05d943dc88e41a88ae9a2efe7ec2263a7d9988eb4205c",
+            "code_commit": "5d708ad3577de3a734a5d0e2d66d85c2ad005a74",
+            "ci_run": 46034694582,
+            "summary": "1005/1005 daily DVOL observations, 139 common 30-day forecasts per market, no missing. QLIKE recomputed on every observation; DVOL lower QLIKE each year, higher overall volatility MAE and positive mean bias. Descriptive reference only; raw source pages and candles not independently replayed."
+          }
+        ]
       }
     ]
   },

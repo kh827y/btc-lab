@@ -115,3 +115,6 @@ RISK-001 diagnostic completed. Sunday 29 Nov UTC: after update.bat run original 
 
 ### DVOL-001
 `update.bat`, `run_dvol.bat`, send `data/research/dvol_v1/dvol_report.json` (or coverage.json on error). Small public Deribit daily archive, no API key, existing BTC/USD data. Data audit and descriptive benchmark only; see DVOL_PROTOCOL.md. Existing journal launch dates unchanged.
+
+### Bounded research tools (local, no AI)
+DVOL completed. After update.bat, from the project folder use `.venv\Scripts\python.exe research_tools.py registry`, `study DVOL-001`, `report_integrity DVOL-001`, or `journals` (same command prefix). All read-only. No new downloads or paid calls. No arbitrary file paths accepted. No autonomous agents yet. BUY/RISK Sunday issuance unchanged.
