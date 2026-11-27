@@ -75,3 +75,5 @@ forecast_journal.py — изолированный локальный персп
 research_daily_usd.py — отдельный фиксированный снимок daily_usd_v1 для BUY-001, официальный Bitstamp/Coinbase OHLCV, проверка UTC, чисел, дубликатов и покрытия; неизменяемый CSV по каждой бирже, оригинальные ответы кэшированы под data/research/daily_usd_v1. Отчёт только качества, без расчёта результатов исследований. Не меняет CPI frozen blobs, не затрагивает панель/мониторинг, не смешивает USD с USDT.
 
 research_buy.py — development-only BUY-001. Проверяет хэши полных CSV, парсит цены только до 2024, вычисляет недельные point-in-time состояния/риски и одинаковые симуляции покупки. BUY_PROTOCOL.md содержит точные правила. Локальный buy_development_report.json, без test CSV, платных вызовов или новых зависимостей. Не менять CPI и журнал.
+
+research_buy_risk.py — отдельное development расширение BUY-001, fixed ridge logistic L1/M2, matched rolling evaluation, калибровка, условные парные блоки, одинаковые правила распределения капитала и контроль фиксированной отсрочки, cash sensitivity. Использует load_development и simulate исходного модуля, не меняет исходные результаты, не открывает финальные цены.
