@@ -725,6 +725,46 @@
             "interpretation": "Unresolved, not evidence of no effect. Adjusted headline near zero; interval excludes neither zero nor absolute differences of 1%, 3% or 5%. Two of six unadjusted weekday sensitivity intervals exclude zero; no clock selection, no independent replication, no variants. Secondary outcome intervals all include zero; flow_next_week missing one primary observation. No signal, policy or production integration. Retain code and reports for reproducibility. Independently verified report SHA256, matching preflight hash and exact 255 time/group pairs; recomputed primary group means, adjusted coefficient, 4/13-block raw intervals and 4-block adjusted interval from uploaded rows. Raw minute archive not replayed; full tests not independently rerun. Closure only of this specific contrast; no general inference about absorption."
           }
         ]
+      },
+      {
+        "id": "DELEVER-001",
+        "kind": "descriptive_state_comparison",
+        "status": "registered_pending_preflight",
+        "decision_id": [
+          "D1",
+          "D3"
+        ],
+        "protocol_files": [
+          "DELEVER_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_delever.py"
+        ],
+        "local_reports": [
+          "data/research/derivative_source_v1/delever_preflight.json"
+        ],
+        "evaluation_window": "Binance BTCUSDT spot/perpetual 2020-09-01..2023-12-31 inclusive, no later data",
+        "target_and_horizon": "Median 7-day simple wait cost after an observed price shock; illustrative entry following day 01 UTC",
+        "baseline": "All price-only shock episodes selected before inspecting OI",
+        "primary_comparison": "OI quantity contracts at least 5% (00:00 to 23:55) versus other known OI changes after UTC open-close spot decline of at least 5%; median difference, descriptive only",
+        "secondary_comparisons": [
+          "Mean wait cost and share positive",
+          "Worst entry-relative downside over 7 days",
+          "28-day wait cost with overlapping windows noted",
+          "By year and fixed shock magnitude bands"
+        ],
+        "minimum_useful_effect_and_rationale": "Owner utility not specified; no minimum imposed; report distributions, not significance",
+        "data_and_availability": "Fixed reviewed local hourly panel, exact timestamps, one-hour illustrative decision buffer; original publication and UTC semantics unverified",
+        "evaluation_and_dependence": "Price-only first eligible shock, seven-day spacing, missing eligible boundaries censor seven days; non-overlapping 7-day windows still share regimes. No fitted models or independent-sample claims",
+        "synthetic_gate_spec_and_result": "Not required for descriptive work; implementation tests added, execution not verified",
+        "stopping_rule": "One preflight, no outcome computation until reviewed; if fewer than 10 calendar-eligible events in either known group or no fixed drop band with >=5 per group, close as case inventory only; otherwise review overlap and separately authorize one descriptive outcome run. No threshold changes, additional contrast mining or prospective forecast authorization.",
+        "code_and_data_versions": "DELEVER-001-descriptive-v1; coverage SHA256 229a8a7d7a0ab65b9cfd0927b9420309e7022720f4327cc4f25c1aa6d87058b5; panel SHA256 485143815dfaa44054b90bfeee284ca513aea1deafd917126d50e3709f6e90cc (reported; actual panel bytes not supplied)",
+        "prior_exposure": [
+          "2018–2023 BTC price outcomes extensively exposed in prior DD/TREND/BUY/RISK and ABSORB studies; not holdout",
+          "OI-001 and OI-GATE-001 closed; no weekly relative-OI predictor or fitted gate repeated",
+          "Source audits inspected coverage, not values of forward episode outcomes"
+        ],
+        "attempts": []
       }
     ]
   },
