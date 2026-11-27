@@ -25,7 +25,7 @@
     "new_studies": [
       {
         "id": "DD-001",
-        "status": "registered_pending_run",
+        "status": "closed_descriptive",
         "kind": "descriptive",
         "decision_id": [
           "D2",
@@ -53,6 +53,39 @@
         ],
         "stopping_rule": "One report, no overwrite or optimization; no post-2023 numeric prices",
         "code_and_data_versions": "DD-001-descriptive-v1, pinned BUY CSV hashes",
+        "attempts": [
+          {
+            "status": "completed",
+            "report_sha256": "759bd8e43ef8644f0af875becb68c476882f7f465b21a094eee47da2026aa133",
+            "code_commit": "9fc2e6b3f0bbe0881dc8b658feef1db66082ac3f",
+            "ci_run": 46032663069,
+            "summary": "391 origins each, 387/379 complete 28/90d outcomes; three distinct episodes in 40–60% group, two in >=60%; no forecast claim."
+          }
+        ]
+      },
+      {
+        "id": "GATE-001",
+        "kind": "synthetic_diagnostic",
+        "status": "registered_pending_run",
+        "decision_id": "D3",
+        "protocol_files": [
+          "GATE_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_gate.py"
+        ],
+        "local_reports": [
+          "data/research/gate_v1/synthetic_gate_report.json"
+        ],
+        "primary_comparison": "Moderate planted effect detection vs independent null; nested 86/150 origins, fixed threshold and Wilson uncertainty",
+        "minimum_useful_effect_and_rationale": "0.01 absolute Brier gain, diagnostic convention not owner investment threshold",
+        "data_and_availability": "Synthetic only, exact matured outcomes",
+        "secondary_comparisons": [
+          "strong planted effect",
+          "filtered and full oracle gains",
+          "86/150 nested lengths"
+        ],
+        "stopping_rule": "One run; no parameter or seed tuning; does not authorize real-market confirmation",
         "attempts": []
       }
     ]

@@ -103,3 +103,6 @@ MACRO timeout recovery: update.bat and rerun run_macro_development.bat. Automati
 
 ### DD-001
 `update.bat`, `run_drawdown.bat`, пришли `data/research/drawdown_v1/drawdown_report.json`. Uses existing pinned BTC/USD CSVs, no downloads, no keys. Descriptive only; see DD_PROTOCOL.md. BUY journal unchanged.
+
+### GATE-001
+DD completed. `update.bat`, `run_synthetic_gate.bat`, send `data/research/gate_v1/synthetic_gate_report.json`. Synthetic only; no data/API keys; calculation may be slower than descriptive reports. No new real-market study authorized by this diagnostic. See GATE_PROTOCOL.md.

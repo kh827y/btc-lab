@@ -99,3 +99,5 @@ research_comb.py — isolated registered post-screening development follow-up, p
 RESEARCH_REGISTRY.json — machine-readable retrospective study-family inventory and forward registration policy. RESEARCH_POLICY.md — decision objectives, synthetic gate requirements and staged roadmap. Future local tools will enforce registered study specs and budgets; no runtime enforcement or new agent controller implemented in this documentation change.
 
 research_drawdown.py — descriptive DD-001, shared pinned BUY loader/outcomes, observed closing peak and episode inventory, fixed depth groups, censored recovery and illustrative static exposure. No network, no forecast fit or decision confirmation. Separate local report; no frozen files changed.
+
+research_gate.py — isolated synthetic risk-method diagnostic, known regime/latent feature process and exact oracles, numerical batched legacy logistic with parity test, independent null calibration/validation and fixed effects. No arbitrary code or external agents, no market input. Study-specific gate still required.
