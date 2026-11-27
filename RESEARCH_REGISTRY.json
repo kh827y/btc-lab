@@ -548,6 +548,32 @@
             "interpretation": "Recomputed medians of four outcome metrics and primary paired means from all eligible report rows, verified report SHA256 and input identities against pinned protocol. No independent raw candle replay or CI verification. Positive 28d average recovery-vs-fixed7 comes from cash stays; all six actual later entries underperform, replicated across same market cycles and all ten early-inclusive entries. 90d mean negative even omitting any one connected overlap cluster. Reduced exposure explains much of downside reduction; no duration-matched random control, no proof of timing skill or optimal allocation. Keep MA50 as context, not mandatory entry. No retuning."
           }
         ]
+      },
+      {
+        "id": "EVENT-FACT-001",
+        "kind": "manual_fact_analysis_feasibility",
+        "status": "registered_pending_source_packages",
+        "decision_id": [
+          "D1",
+          "D3"
+        ],
+        "protocol_files": [
+          "EVENT_FACT_PILOT.md"
+        ],
+        "implementation_files": [
+          "research_fomc_packages.py"
+        ],
+        "local_reports": [
+          "data/research/event_fact_v1/fomc_2023_packages.json"
+        ],
+        "evaluation_window": "All eight scheduled 2023 FOMC statements; next four actually released scheduled statements after registration, separately prospective",
+        "target_and_horizon": "As-of document factual analysis and change in decision context; no market outcome scoring",
+        "baseline": "Direct structured extraction from identical documents",
+        "primary_comparison": "Coverage of material facts, critical errors, additional verified distinctions, time and cost; strong model versus template",
+        "stopping_rule": "No replacement of incomplete cases; investigate critical errors before use; after pilot retain strong model only where demonstrably useful; no investment skill claim",
+        "synthetic_gate_spec_and_result": "Not applicable to manual fact-analysis feasibility",
+        "code_and_data_versions": "EVENT-FACT-PILOT-v1; event-fact-2023-packages-v1",
+        "attempts": []
       }
     ]
   },
