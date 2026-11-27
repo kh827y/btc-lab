@@ -138,7 +138,7 @@
       {
         "id": "RISK-001",
         "kind": "descriptive_calibration_diagnostic",
-        "status": "registered_pending_run",
+        "status": "closed_descriptive",
         "decision_id": [
           "D2",
           "D3"
@@ -172,7 +172,15 @@
         ],
         "stopping_rule": "One report, no model selection or tuning, no 2024+ data",
         "code_and_data_versions": "RISK-001-reference-diagnostic-v1, pinned BUY CSVs",
-        "attempts": []
+        "attempts": [
+          {
+            "status": "completed",
+            "report_sha256": "a752a81be2b138949ce825e2a412d38396168a187279c655adbf5130e51cc1c6",
+            "code_commit": "edb84adb9ecfe2121c3e6fbfb4d60d17a8d0a79b",
+            "ci_run": 46033827364,
+            "summary": "312/309/301 common forecasts 7/28/90d, no missing. Brier recomputed from all prediction rows. Longer history generally lower scores, short-term volatility scaling modestly helps downside, long-horizon scaling worsens return distribution. Calibration unstable by year. No selected winner or confirmation."
+          }
+        ]
       }
     ]
   },
@@ -900,6 +908,28 @@
       "status": "legacy",
       "implementation": "forecast_journal.py",
       "note": "Separate Binance journal; do not treat receipt as verified solely from documentation."
+    },
+    {
+      "id": "RISK-journal-v1",
+      "kind": "prospective_descriptive_tracking",
+      "status": "registered_pending_first_issue",
+      "first_origin_utc": "2026-11-30T00:00:00Z",
+      "ledger": "risk_journal_receipts.json",
+      "implementation": "risk_journal.py",
+      "protocol_files": [
+        "RISK_JOURNAL_PROTOCOL.md"
+      ],
+      "models": [
+        "empirical_expanding",
+        "scaled_expanding",
+        "ewma_variance"
+      ],
+      "horizons_days": [
+        7,
+        28,
+        90
+      ],
+      "note": "Separate from frozen BUY journal. Record all matured observations through Sunday cutoff (including post-2023 for prospective training only); no historical confirmation, no OI challenger until study-specific gate. Do not backfill. Manual external receipt before origin. No claim of investment utility."
     }
   ]
 }

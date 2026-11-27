@@ -109,3 +109,6 @@ DD completed. `update.bat`, `run_synthetic_gate.bat`, send `data/research/gate_v
 
 ### RISK-001
 GATE-001 did not pass; preserve report, do not rerun. `update.bat`, `run_risk_reference.bat`, send `data/research/risk_reference_v1/risk_reference_report.json`. Existing price snapshots only. Descriptive calibration on development history, no new confirmation or trade rules. See RISK_REFERENCE_PROTOCOL.md.
+
+### RISK-journal-v1
+RISK-001 diagnostic completed. Sunday 29 Nov UTC: after update.bat run original run_buy_journal.bat (unchanged), then run_risk_journal.bat. Send both data/research/buy_journal/2026-11-30/forecast.json and data/research/risk_journal/2026-11-30/risk_forecast.json before Monday 00 UTC, separate receipt hashes. Keep source files locally. Later .venv\\Scripts\\python.exe risk_journal.py settle / status (separate commands). No backfill. No new factor confirmations.
