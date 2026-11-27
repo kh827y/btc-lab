@@ -729,7 +729,7 @@
       {
         "id": "DELEVER-001",
         "kind": "descriptive_state_comparison",
-        "status": "registered_pending_preflight",
+        "status": "descriptive_preflight_reviewed_pending_outcomes",
         "decision_id": [
           "D1",
           "D3"
@@ -738,10 +738,12 @@
           "DELEVER_PROTOCOL.md"
         ],
         "implementation_files": [
-          "research_delever.py"
+          "research_delever.py",
+          "research_delever_outcomes.py"
         ],
         "local_reports": [
-          "data/research/derivative_source_v1/delever_preflight.json"
+          "data/research/derivative_source_v1/delever_preflight.json",
+          "data/research/derivative_source_v1/delever_outcomes.json"
         ],
         "evaluation_window": "Binance BTCUSDT spot/perpetual 2020-09-01..2023-12-31 inclusive, no later data",
         "target_and_horizon": "Median 7-day simple wait cost after an observed price shock; illustrative entry following day 01 UTC",
@@ -764,7 +766,65 @@
           "OI-001 and OI-GATE-001 closed; no weekly relative-OI predictor or fitted gate repeated",
           "Source audits inspected coverage, not values of forward episode outcomes"
         ],
-        "attempts": []
+        "attempts": [
+          {
+            "status": "owner_preflight_reviewed_descriptive_outcomes_permitted",
+            "report_sha256": "e1f218b6eb4964934f34b237ac700974de071d0e6889b1c1851228535a116a13",
+            "panel_sha256": "485143815dfaa44054b90bfeee284ca513aea1deafd917126d50e3709f6e90cc",
+            "result": {
+              "n": 45,
+              "groups": [
+                20,
+                25,
+                0
+              ],
+              "bands_5to10": [
+                15,
+                23
+              ],
+              "bands_10plus": [
+                5,
+                2
+              ],
+              "years": {
+                "2020": [
+                  2,
+                  0
+                ],
+                "2021": [
+                  9,
+                  12
+                ],
+                "2022": [
+                  6,
+                  10
+                ],
+                "2023": [
+                  3,
+                  3
+                ]
+              },
+              "min_spacing_days": 7,
+              "median_price_change": [
+                -0.07265367495033809,
+                -0.061133983702428396
+              ],
+              "median_oi_change": [
+                -0.08333829210813637,
+                0.0062032427184677275
+              ],
+              "median_spot_low_from_open": [
+                -0.11863969785634831,
+                -0.07211376577570616
+              ],
+              "median_prior28_log_intraday_sum": [
+                0.0015519253941432094,
+                -0.05682571218182857
+              ]
+            },
+            "interpretation": "Actual uploaded report bytes hashed; all 45 dates, thresholds, entry times, classifications and spacing checked, group/year/band counts recomputed. All shock days complete for spot, futures and premium; one contraction episode lacks prior28 context. Reporting floor met. Meaningful imbalance in shock severity, prior price context and year remains; only moderate drop band has >=5 in both groups. No adjustment or threshold search; report all frozen contrasts with explicit caveats. Allow one descriptive outcome run on exact reviewed input and replayed preflight only. No causal, predictive or trading-rule authorization. Raw panel not independently replayed."
+          }
+        ]
       }
     ]
   },
