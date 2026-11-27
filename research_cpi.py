@@ -13,12 +13,29 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from binance_minute import MINUTE, ROOT, atomic_write, digest, json_write
-from research_prices import DAY, MinutePrices
+from research_prices import DAY, MinutePrices, snapshot, snapshot_hash
 
 BASE = Path(__file__).resolve().parent / "data"
 OUT = BASE / "research" / "cpi"
 # Pin the original Astra archive's manifest, not a mutable copy from a website.
 MANIFEST_HASH = "29a5bf0f907b1b5b05323fa3e13fe37c32fcd322405a67afbf9221ede7463b6d"
+CPI_HASH = "9ab73661f0542e797c4163717e9ec4ed5aca6a5c286b3d97308255e3b6264653"
+PRICE_HASH = "c306087ece415f6473d4c93adf762ebcd2ae4abe7afd48d5c56cb6bcce2b04fb"
+PREPARATION = "cpi-v2-development-only"
+LEGACY_TEST_FILES = ("test_features.csv","test_outcomes.csv","test_controls.csv","test_delayed_features.csv")
+DEV_FILES = tuple(f"{s}_{k}.csv" for s in ("train","development")
+                  for k in ("features","outcomes","controls","delayed_features"))
+# Known outputs from the user's successful, pre-audit development preparation.
+EXPECTED_DEV_HASHES = {
+    "train_features.csv":"653412d7afee0dbdec9cd9a24bfcbf905347ab7e422d2abe9429504b296d0e13",
+    "train_outcomes.csv":"9dcd4a690b2e3fc375ef697c7676c36b007766e46a1fb8b6eba3d6d08c201245",
+    "train_controls.csv":"d97faf039e31a50d4415829d51bf1d3a5831f110f4842bcc0b8d8569567bbbb5",
+    "train_delayed_features.csv":"2cb7a97da5a7284ad82e4b76885b4489848e8dbed56017aa468c4a4262a7cb3a",
+    "development_features.csv":"731a2e0102fb99c05d66ec60aa9494caf06bd8df51801ace807114135dca6522",
+    "development_outcomes.csv":"55f88384174aa97457b2d59a536277bfa4c30b0b7d7679a0cc14b8df3f9b08ae",
+    "development_controls.csv":"bae6ebeb41689440fda76aa90c20c5fc812f49f112c14a69cde5e21fa5831042",
+    "development_delayed_features.csv":"ecc746d107e1833977d2787cca9a123b2848b14ea347da5c9f6632ad2e6be5ab",
+}
 MEMBERS = {"README.md","bls_first_prints.csv","cpi_expectations.csv",
            "cpi_releases.csv","excluded_sources.csv","quality.json","validate.py"}
 METRICS = ("headline_mom","core_mom","headline_yoy","core_yoy")
@@ -42,7 +59,7 @@ def require(ok, message):
         raise ValueError(message)
 
 
-def read_cpi(path):
+def read_cpi(path, *, manifest_hash=MANIFEST_HASH, counts=(106,324,105,104)):
     """Read only known members; never execute supplied validate.py."""
     raw = Path(path).read_bytes()
     require(len(raw) <= 2_000_000,"CPI ZIP too large")
@@ -51,7 +68,7 @@ def read_cpi(path):
         require(len(infos)==len(MEMBERS)+1 and {x.filename for x in infos}==MEMBERS|{"SHA256SUMS"}
                 and all(x.file_size <= 2_000_000 for x in infos),"Unexpected CPI ZIP members")
         manifest = z.read("SHA256SUMS")
-        require(digest(manifest)==MANIFEST_HASH,"Not the verified Astra CPI archive")
+        require(digest(manifest)==manifest_hash,"Not the verified Astra CPI archive")
         hashes = dict((name,h) for h,name in
                       (line.split("  ",1) for line in manifest.decode().splitlines()))
         require(set(hashes)==MEMBERS,"Unexpected CPI manifest")
@@ -63,10 +80,10 @@ def read_cpi(path):
                                    ("cpi_releases.csv","cpi_expectations.csv","bls_first_prints.csv")]
     by_event = {r["event_id"]:r for r in events}
     by_forecast = {r["forecast_id"]:r for r in forecasts}
-    require(len(events)==len(by_event)==len(official)==106 and
-            len({r["event_id"] for r in official})==106,"CPI event count")
-    require(len(forecasts)==len(by_forecast)==324,"CPI forecast count")
-    require(len({r["release_time_utc"] for r in events})==106,"Duplicate release time")
+    require(len(events)==len(by_event)==len(official)==counts[0] and
+            len({r["event_id"] for r in official})==counts[0],"CPI event count")
+    require(len(forecasts)==len(by_forecast)==counts[1],"CPI forecast count")
+    require(len({r["release_time_utc"] for r in events})==counts[0],"Duplicate release time")
     alternatives = defaultdict(list)
     for f in forecasts:
         e = by_event[f["event_id"]]
@@ -97,8 +114,8 @@ def read_cpi(path):
         require(int(paired)==int(e["monthly_pair_available"]) and
                 int(paired and not e["early_partial_time_utc"])==int(e["standard_intraday_timing_and_pair"]),
                 "CPI inclusion flags mismatch")
-    require(sum(int(e["monthly_pair_available"]) for e in events)==105 and
-            sum(int(e["standard_intraday_timing_and_pair"]) for e in events)==104,"CPI coverage mismatch")
+    require(sum(int(e["monthly_pair_available"]) for e in events)==counts[2] and
+            sum(int(e["standard_intraday_timing_and_pair"]) for e in events)==counts[3],"CPI coverage mismatch")
     return sorted(events,key=lambda e:e["release_time_utc"]), alternatives, digest(raw)
 
 
@@ -171,21 +188,33 @@ def prepare_event(e, alternatives, prices):
     return features,outcomes,controls,delayed
 
 
-def write_csv(path, rows):
-    require(bool(rows),"Empty output "+str(path))
+def csv_bytes(rows):
+    require(bool(rows),"Empty output")
     buf=io.StringIO(newline="")
     w=csv.DictWriter(buf,fieldnames=list(rows[0]))
     w.writeheader()
     w.writerows(rows)
-    atomic_write(path,buf.getvalue().encode("utf-8"))
+    return buf.getvalue().encode("utf-8")
 
 
-def build(cpi_path, minute_root=ROOT, out=OUT):
-    events, alternatives, cpi_hash=read_cpi(cpi_path)
-    prices=MinutePrices.load(minute_root)
+def frozen_snapshot(minute_root, out):
+    path = out/"price_snapshot.json"
+    if path.exists():
+        data = snapshot(json.loads(path.read_bytes()))
+    else:
+        data = snapshot(json.loads((Path(minute_root)/"audit.json").read_bytes()))
+    require(snapshot_hash(data)==PRICE_HASH,
+            "Frozen CPI price archives differ. Use original minute coverage through 2026-11-26; do not overwrite the study.")
+    return data
+
+
+def development_groups(events, alternatives, prices):
     groups=defaultdict(lambda:{"features":[],"outcomes":[],"controls":[],"delayed_features":[]})
     coverage=defaultdict(Counter)
     for e in events:
+        # No features, reaction, controls or outcomes from final-period events.
+        if split_name(stamp(e["release_time_utc"]))=="test":
+            continue
         f,o,c,d=prepare_event(e,alternatives[e["event_id"]],prices)
         split=f["split"]
         g=groups[split]
@@ -202,22 +231,65 @@ def build(cpi_path, minute_root=ROOT, out=OUT):
                 q["missing_"+k]+=v is None
         q["candidate_controls"]+=len(c)
         q["controls_with_prices"]+=sum(x["reaction_30m"] is not None for x in c)
+    return groups, coverage
+
+
+def verify_development(root, manifest):
+    require(manifest.get("complete") is True and manifest.get("protocol")==PREPARATION
+            and manifest.get("cpi_sha256")==CPI_HASH
+            and manifest["price_provenance"]["snapshot_sha256"]==PRICE_HASH
+            and manifest.get("file_sha256")==EXPECTED_DEV_HASHES
+            and manifest.get("test_generated") is False,"Unexpected frozen development version")
+    require(snapshot_hash(json.loads((root/"price_snapshot.json").read_bytes()))==PRICE_HASH,
+            "Frozen archive manifest changed")
+    for name,h in EXPECTED_DEV_HASHES.items():
+        require(digest((root/name).read_bytes())==h,"Prepared file changed: "+name)
+    require(not any((root/name).exists() for name in LEGACY_TEST_FILES),
+            "Legacy test CSVs present; do not expose research directory to agents")
+    return manifest
+
+
+def build(cpi_path, minute_root=ROOT, out=OUT):
     out=Path(out)
-    # Mark incomplete until all split files have been replaced.
-    json_write(out/"coverage.json",{"complete":False})
-    files={}
-    for split,g in groups.items():
-        for name,rows in g.items():
-            path=out/f"{split}_{name}.csv"
-            write_csv(path,rows)
-            files[path.name]=digest(path.read_bytes())
-    report={"complete":True,"protocol":"cpi-v1-preparation","cpi_sha256":cpi_hash,
+    events, alternatives, cpi_hash=read_cpi(cpi_path)
+    require(cpi_hash==CPI_HASH,"Unexpected original CPI ZIP")
+    frozen=frozen_snapshot(minute_root,out)
+    prices=MinutePrices.load(minute_root,frozen=frozen)
+    marker=out/"coverage.json"
+    old=json.loads(marker.read_bytes()) if marker.exists() else None
+    if old and old.get("complete") is True:
+        if old.get("protocol")==PREPARATION:
+            return verify_development(out,old)
+        require(old.get("protocol")=="cpi-v1-preparation" and old.get("cpi_sha256")==CPI_HASH
+                and all(old["file_sha256"].get(k)==v for k,v in EXPECTED_DEV_HASHES.items()),
+                "Unrecognized completed study; refusing overwrite")
+        for name,h in EXPECTED_DEV_HASHES.items():
+            require(digest((out/name).read_bytes())==h,"Legacy development file changed: "+name)
+    elif old:
+        require(old=={"complete":False,"protocol":PREPARATION},
+                "Unrecognized interrupted preparation; refusing overwrite")
+    groups, coverage=development_groups(events,alternatives,prices)
+    files={f"{split}_{name}.csv":csv_bytes(rows)
+           for split,g in groups.items() for name,rows in g.items()}
+    hashes={name:digest(raw) for name,raw in files.items()}
+    require(hashes==EXPECTED_DEV_HASHES,"Development outputs differ from original; no files changed")
+    # Only now migrate. Raw data and existing development reports stay intact.
+    json_write(out/"price_snapshot.json",frozen)
+    json_write(marker,{"complete":False,"protocol":PREPARATION})
+    for name,raw in files.items():
+        atomic_write(out/name,raw)
+    # Remove only previously generated test CSVs, without reading their values.
+    # Original archives remain; final evaluation will require a separate command.
+    for name in LEGACY_TEST_FILES:
+        (out/name).unlink(missing_ok=True)
+    report={"complete":True,"protocol":PREPARATION,"cpi_sha256":cpi_hash,
             "price_provenance":prices.provenance,"coverage":dict(coverage),
-            "file_sha256":files,"control_calendar_checked":False,
-            "independent_price_check":False,"test_results_opened_by_this_script":False,
-            "note":"Coverage only; no performance, no fitted models. Test files are local and not access-controlled."}
-    json_write(out/"coverage.json",report)
-    return report
+            "file_sha256":hashes,"control_calendar_checked":False,
+            "independent_price_check":False,"test_generated":False,
+            "test_events_reserved":sum(split_name(stamp(e["release_time_utc"]))=="test" for e in events),
+            "note":"Development only. Final evaluation is not implemented. Raw price archives remain local and must not be exposed to agents."}
+    json_write(marker,report)
+    return verify_development(out,report)
 
 
 def main():
@@ -240,7 +312,7 @@ def main():
     print("Preparing local CPI dataset; no API calls.",flush=True)
     r=build(path)
     print(json.dumps(r["coverage"],indent=2),flush=True)
-    print("Send coverage.json only, not the test CSVs:",OUT/"coverage.json",flush=True)
+    print("Send coverage.json only. Final CSVs are not generated:",OUT/"coverage.json",flush=True)
     return 0
 
 

@@ -11,6 +11,24 @@ DAY = 1440 * MINUTE
 FIELDS = {"open": 0, "high": 1, "low": 2, "close": 3}
 
 
+def snapshot(audit):
+    """Stable archive identity, independent of cache flags and download times."""
+    if audit.get("schema") != SCHEMA or audit.get("complete_scan") is not True or audit.get("errors") != 0:
+        raise ValueError("Run full download_minutes.bat successfully first")
+    result = {k:audit[k] for k in ("schema","start","stop","rows","expected","missing_or_unavailable")}
+    result.update(complete_scan=True, errors=0)
+    result["archives"] = []
+    for item in audit["archives"]:
+        if "error" in item:
+            raise ValueError("Failed archive in completed audit")
+        result["archives"].append({k:item[k] for k in ("url","start","stop","sha256","rows","missing")})
+    return result
+
+
+def snapshot_hash(audit):
+    return digest(json.dumps(snapshot(audit),sort_keys=True,separators=(",",":")).encode("utf-8"))
+
+
 class MinutePrices:
     """Dense UTC minute grid; missing rows are NaN, never interpolated."""
     def __init__(self, start, stop, values):
@@ -21,12 +39,9 @@ class MinutePrices:
         self.start, self.stop, self.values = start, stop, values
 
     @classmethod
-    def load(cls, root):
+    def load(cls, root, frozen=None):
         root = Path(root)
-        raw_audit = (root / "audit.json").read_bytes()
-        audit = json.loads(raw_audit)
-        if audit.get("schema") != SCHEMA or audit.get("complete_scan") is not True or audit.get("errors") != 0:
-            raise ValueError("Run full download_minutes.bat successfully first")
+        audit = snapshot(json.loads((root / "audit.json").read_bytes()) if frozen is None else frozen)
         start, stop = map(date.fromisoformat, (audit["start"], audit["stop"]))
         n = (ms(stop)-ms(start))//MINUTE
         if start != FIRST or not 0 < n <= 20_000_000:
@@ -66,7 +81,7 @@ class MinutePrices:
         if not total:
             raise ValueError("No usable prices")
         prices = cls(ms(start),ms(stop),values)
-        prices.provenance = {"audit_sha256":digest(raw_audit),"start":start.isoformat(),
+        prices.provenance = {"snapshot_sha256":snapshot_hash(audit),"start":start.isoformat(),
                              "stop_exclusive":stop.isoformat(),"rows":total,
                              "expected":n,"missing":n-total}
         return prices

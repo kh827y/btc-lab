@@ -8,15 +8,12 @@ from pathlib import Path
 import numpy as np
 
 from binance_minute import digest, json_write
-from research_cpi import OUT, stamp, millis
+from research_cpi import OUT, stamp, millis, verify_development
 from research_prices import DAY
 
 FEATURES = ("prior_return_28d", "prior_vol_28d", "reaction_30m", "core_mom_surprise_pp")
 MODELS = {"zero": None, "historical_mean": 0, "market_before": 2,
           "market_after": 3, "market_plus_cpi": 4}
-# Pin the exact preparation; changes require a new protocol/data version.
-CPI_HASH = "9ab73661f0542e797c4163717e9ec4ed5aca6a5c286b3d97308255e3b6264653"
-AUDIT_HASH = "b23dc6bb4412070efc38590fa0bd89f2eef69d1f8234824120df8d04fe2b95da"
 
 
 def read_table(root, name, manifest):
@@ -126,17 +123,14 @@ def summary(rows):
 def run(root=OUT):
     root=Path(root)
     manifest=json.loads((root/"coverage.json").read_text(encoding="utf-8"))
-    if (manifest.get("complete") is not True or manifest.get("protocol")!="cpi-v1-preparation"
-        or manifest.get("cpi_sha256")!=CPI_HASH
-        or manifest["price_provenance"]["audit_sha256"]!=AUDIT_HASH):
-        raise ValueError("Unexpected prepared data version; do not overwrite frozen preparation")
+    verify_development(root,manifest)
     train,dev=[load_split(root,s,manifest["file_sha256"]) for s in ("train","development")]
     if (len(train),len(dev))!=(46,24):
         raise ValueError("Unexpected eligible counts")
     if set(e["id"] for e in train)&set(e["id"] for e in dev):
         raise ValueError("Duplicate cross-partition event")
     rows=replay(train,dev)
-    report={"protocol":"CPI-001-development-v1","train_n":len(train),
+    report={"protocol":"CPI-001-development-v1","preparation":manifest["protocol"],"price_snapshot_sha256":manifest["price_provenance"]["snapshot_sha256"],"train_n":len(train),
             "development":summary(rows),"test_read":False,
             "training_count_first":rows[0]["training_count"],"training_count_last":rows[-1]["training_count"],
             "data_hashes":{k:v for k,v in manifest["file_sha256"].items()
