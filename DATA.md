@@ -53,3 +53,6 @@ coverage.json от 27.11.2026: 106 событий, 104 стандартных с
 
 ### Миграция CPI-v2 подтверждена локально
 27.11.2026: complete=true, cpi-v2-development-only, snapshot_sha256=c306087ece415f6473d4c93adf762ebcd2ae4abe7afd48d5c56cb6bcce2b04fb. Восемь хэшей train/development неизменны; 46+24 пригодных, 34 события зарезервированы, test_generated=false. Сам факт доступности сырых архивов не означает доступность для будущих агентных инструментов. Независимая сверка цен и контрольный календарь не выполнены.
+
+### Независимый источник CPI (кандидат, реализация)
+Coinbase Exchange BTC/USD spot, public candles API: https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles . Документация разрешает диапазоны 1m/1d, до 300 свечей, предупреждает о неполноте. Запрашиваем только нужные интервалы до 2024, локально сохраняем оригинальные ответы с SHA-256, не заменяем Binance. Kraken OHLCVT полный архив через 30.09.2026 опубликован пятью крупными частями (https://support.kraken.com/articles/360047124832-downloadable-historical-ohlcvt-open-high-low-close-volume-trades-data), поэтому пока не скачиваем. Фактическая доступность исторического Coinbase API из среды пользователя и покрытие требуют запуска; не считать проверенными.
