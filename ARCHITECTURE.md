@@ -95,3 +95,5 @@ research_oi.py — isolated weekly OI reconstruction, verified original ZIPs, co
 research_macro.py — development-only matched macro probability comparisons, FRED raw snapshots, bounded holidays and publication lag, fixed two financial-condition features, shared BUY/FUND calculations; no historical vintage proof, no changes to frozen code or panel.
 
 research_comb.py — isolated registered post-screening development follow-up, pinned input snapshots, shared BUY/VAL/OI/FUND features and BUY audit rotation; matched labels/models, practical equal-budget comparison, no final data or network. Existing frozen modules untouched.
+
+RESEARCH_REGISTRY.json — machine-readable retrospective study-family inventory and forward registration policy. RESEARCH_POLICY.md — decision objectives, synthetic gate requirements and staged roadmap. Future local tools will enforce registered study specs and budgets; no runtime enforcement or new agent controller implemented in this documentation change.

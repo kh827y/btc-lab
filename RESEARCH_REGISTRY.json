@@ -1,0 +1,753 @@
+{
+  "schema": 1,
+  "created": "2026-11-27",
+  "historical_inventory_at": "a7cf7a76a0a0e2572fd854881fc928a6221f519f",
+  "scope": "Retrospective inventory of study families, explicit forecast pairs and decision/sensitivity families; not a count of independent hypotheses. Legacy individual report fields and ad hoc attempts are not fully enumerated. No retroactive preregistration claim.",
+  "historical_period_policy": "2024-2026 previously exposed in CPI and BUY. No pristine historical holdout; prospective evidence separate.",
+  "new_study_policy": {
+    "status": "screening_frozen",
+    "required": [
+      "decision_id",
+      "primary_comparison",
+      "baseline",
+      "target_and_horizon",
+      "minimum_useful_effect_and_rationale",
+      "data_and_availability",
+      "evaluation_and_dependence",
+      "synthetic_gate_spec_and_result",
+      "secondary_comparisons",
+      "stopping_rule",
+      "evaluation_window",
+      "code_and_data_versions"
+    ],
+    "comparison_budget": "At most one primary comparison per new confirmatory study and at most three such studies per calendar quarter by default; owner may explicitly revise before registration. All attempted runs and negative results retained.",
+    "gate": "No forecast/decision confirmation run without a predeclared planted-effect and null diagnostic. Gate failure blocks confirmation, not descriptive data audit. Synthetic success is not proof of market skill.",
+    "new_studies": []
+  },
+  "studies": [
+    {
+      "id": "CPI-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "CPI_PROTOCOL.md",
+        "CPI_FINAL.md"
+      ],
+      "implementation_files": [
+        "research_cpi.py",
+        "research_cpi_development.py",
+        "research_cpi_diagnostics.py",
+        "research_cpi_calendar.py",
+        "research_cpi_coinbase.py",
+        "research_cpi_final.py"
+      ],
+      "local_reports": [
+        "data/research/cpi/development_report.json",
+        "data/research/cpi/calendar_development_report.json",
+        "data/research/cpi/coinbase_development_report.json",
+        "data/research/cpi/final_report.json"
+      ],
+      "evaluation_period": "2018–2023 development; 2024–2026 historical final",
+      "primary": {
+        "target": "7d return",
+        "metric": "RMSE delta",
+        "pair": [
+          "market_plus_cpi",
+          "market_after"
+        ]
+      },
+      "comparison_families": {
+        "models": [
+          "zero",
+          "historical_mean",
+          "market_before",
+          "market_after",
+          "market_plus_cpi"
+        ],
+        "scores": [
+          "RMSE",
+          "MSE",
+          "MAE"
+        ],
+        "purchase_references": [
+          "market_after",
+          "buy_now",
+          "always_wait_7d"
+        ],
+        "diagnostics": [
+          "year",
+          "fresh_forecast_24h",
+          "min/max published surprises",
+          "late_entry_24h",
+          "leave_one_eval",
+          "leave_one_train_refit",
+          "cost_differential_-50_to_50bp",
+          "Coinbase common dates",
+          "calendar control windows",
+          "7/28d downside descriptive"
+        ],
+        "scope_note": "See implementations and protocol for all diagnostics/report fields."
+      },
+      "result": "Incremental forecast skill and buy-now advantage not established.",
+      "next": "Stop this CPI buy rule; scheduled-event risk and expectations remain distinct research questions."
+    },
+    {
+      "id": "BUY-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "BUY_PROTOCOL.md",
+        "BUY_FINAL.md"
+      ],
+      "implementation_files": [
+        "research_buy.py",
+        "research_buy_risk.py",
+        "research_buy_audit.py",
+        "research_buy_final.py"
+      ],
+      "local_reports": [
+        "data/research/daily_usd_v1/buy_development_report.json",
+        "data/research/daily_usd_v1/buy_risk_extension_report.json",
+        "data/research/daily_usd_v1/buy_audit_controls_report.json",
+        "data/research/daily_usd_v1/buy_final_report.json"
+      ],
+      "evaluation_period": "2014–2023 price history/development; 2024–2026 historical final",
+      "primary": {
+        "target": "8-week accumulation, equal budget",
+        "metric": "log BTC quantity gain",
+        "pairs": [
+          [
+            "M1",
+            "rotated_M1"
+          ],
+          [
+            "M2",
+            "L1"
+          ],
+          [
+            "M1",
+            "L1"
+          ]
+        ],
+        "note": "Historical final primary family; initial base compared rules against DCA."
+      },
+      "comparison_families": {
+        "models": [
+          "M0",
+          "M1",
+          "L1",
+          "M2",
+          "coinflip"
+        ],
+        "horizons": [
+          28
+        ],
+        "targets": [
+          "up",
+          "loss_15",
+          "return_quantiles",
+          "variance"
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "pinball",
+          "QLIKE",
+          "coverage",
+          "calibration"
+        ],
+        "forecast_pairs": [
+          [
+            "M1",
+            "M0"
+          ],
+          [
+            "L1",
+            "M1"
+          ],
+          [
+            "M2",
+            "L1"
+          ],
+          [
+            "M2",
+            "M0"
+          ],
+          [
+            "M2",
+            "M1"
+          ]
+        ],
+        "purchase_rules": [
+          "dca",
+          "lump",
+          "trend",
+          "dip",
+          "risk",
+          "M1",
+          "L1",
+          "M2",
+          "fixed_delay"
+        ],
+        "purchase_controls": [
+          "DCA",
+          "lump",
+          "fixed_delay",
+          "own_schedule_rotations"
+        ],
+        "variants": [
+          "4w",
+          "16w",
+          "MA10",
+          "MA50",
+          "DIP10",
+          "DIP30",
+          "RISK70",
+          "RISK90",
+          "fee50bp_base_only",
+          "cash0",
+          "cash5",
+          "year",
+          "common_market_dates"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ]
+      },
+      "result": "No convincing purchasing advantage; limited decision lever and weak forecast baselines.",
+      "next": "Keep original historical and prospective experiments; retire further tuning of these rules."
+    },
+    {
+      "id": "FLOW-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "FLOW_PROTOCOL.md"
+      ],
+      "implementation_files": [
+        "research_flow.py"
+      ],
+      "local_reports": [
+        "data/research/flow_v1/flow_development_report.json"
+      ],
+      "evaluation_period": "2019-01-07..2023",
+      "primary": {
+        "target": "up",
+        "metric": "Brier delta",
+        "horizon_days": 28,
+        "pair": [
+          "L1_flow",
+          "L1"
+        ]
+      },
+      "comparison_families": {
+        "forecast_pairs": [
+          [
+            "L1_flow",
+            "L1"
+          ],
+          [
+            "M2_flow",
+            "M2"
+          ],
+          [
+            "L1_flow",
+            "frequency"
+          ],
+          [
+            "L1_flow",
+            "coinflip"
+          ]
+        ],
+        "targets": [
+          "up",
+          "loss_15"
+        ],
+        "horizons": [
+          28
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "mean_probability",
+          "actual_frequency"
+        ],
+        "references": [
+          "frequency",
+          "coinflip"
+        ],
+        "strata": [
+          "year",
+          "market"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ]
+      },
+      "result": "No incremental improvement.",
+      "next": "Stop tested weekly single-exchange imbalance formulation."
+    },
+    {
+      "id": "VALUE-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "VALUE_PROTOCOL.md"
+      ],
+      "implementation_files": [
+        "research_value.py"
+      ],
+      "local_reports": [
+        "data/research/value_v1/value_development_report.json"
+      ],
+      "evaluation_period": "2019-01-07..2023",
+      "primary": {
+        "target": "up",
+        "metric": "Brier delta",
+        "horizon_days": 90,
+        "pair": [
+          "L1_value",
+          "L1"
+        ]
+      },
+      "comparison_families": {
+        "forecast_pairs": [
+          [
+            "L1_value",
+            "L1"
+          ],
+          [
+            "M2_value",
+            "M2"
+          ],
+          [
+            "L1_value",
+            "frequency"
+          ],
+          [
+            "L1_value",
+            "coinflip"
+          ]
+        ],
+        "targets": [
+          "up",
+          "loss_15"
+        ],
+        "horizons": [
+          28,
+          90
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "mean_probability",
+          "actual_frequency"
+        ],
+        "references": [
+          "frequency",
+          "coinflip"
+        ],
+        "strata": [
+          "year",
+          "market"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ],
+        "lags_days": [
+          3,
+          8
+        ],
+        "descriptive_mvrv_bands": [
+          "below_1",
+          "1_to_2_5",
+          "at_least_2_5"
+        ]
+      },
+      "result": "Primary direction worsened; secondary M2 risk promising; retrospective valuation bands.",
+      "next": "Keep MVRV as descriptive prior, not proven buy rule."
+    },
+    {
+      "id": "FUND-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "FUND_PROTOCOL.md"
+      ],
+      "implementation_files": [
+        "research_fund.py"
+      ],
+      "local_reports": [
+        "data/research/fund_v1/fund_development_report.json"
+      ],
+      "evaluation_period": "2021-07-05..2023",
+      "primary": {
+        "target": "loss_15",
+        "metric": "Brier delta",
+        "horizon_days": 28,
+        "pair": [
+          "L1_fund",
+          "L1"
+        ]
+      },
+      "comparison_families": {
+        "forecast_pairs": [
+          [
+            "L1_fund",
+            "L1"
+          ],
+          [
+            "M2_fund",
+            "M2"
+          ],
+          [
+            "L1_fund",
+            "frequency"
+          ],
+          [
+            "L1_fund",
+            "coinflip"
+          ]
+        ],
+        "targets": [
+          "up",
+          "loss_15"
+        ],
+        "horizons": [
+          28
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "mean_probability",
+          "actual_frequency"
+        ],
+        "references": [
+          "frequency",
+          "coinflip"
+        ],
+        "strata": [
+          "year",
+          "market"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ]
+      },
+      "result": "No convincing standalone effect.",
+      "next": "Stop standalone formulation; only retained as fixed part of previously tested derivatives challenger."
+    },
+    {
+      "id": "OI-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "OI_PROTOCOL.md"
+      ],
+      "implementation_files": [
+        "research_oi.py"
+      ],
+      "local_reports": [
+        "data/research/oi_v1/oi_development_report.json"
+      ],
+      "evaluation_period": "2022-04-04..2023",
+      "primary": {
+        "target": "loss_15",
+        "metric": "Brier delta",
+        "horizon_days": 28,
+        "pair": [
+          "L1_oi",
+          "L1"
+        ]
+      },
+      "comparison_families": {
+        "forecast_pairs": [
+          [
+            "L1_oi",
+            "L1"
+          ],
+          [
+            "L1_oi_fund",
+            "L1_fund"
+          ],
+          [
+            "L1_oi_fund",
+            "L1_oi"
+          ],
+          [
+            "M2_oi",
+            "M2"
+          ],
+          [
+            "M2_oi_fund",
+            "M2_oi"
+          ],
+          [
+            "L1_oi_fund",
+            "frequency"
+          ]
+        ],
+        "targets": [
+          "up",
+          "loss_15"
+        ],
+        "horizons": [
+          28
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "mean_probability",
+          "actual_frequency"
+        ],
+        "references": [
+          "frequency",
+          "coinflip"
+        ],
+        "strata": [
+          "year",
+          "market"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ]
+      },
+      "result": "Promising against L1, short and overlapping sample.",
+      "next": "One future registered confirmation against stronger reference, conditional on gate."
+    },
+    {
+      "id": "MACRO-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "MACRO_PROTOCOL.md"
+      ],
+      "implementation_files": [
+        "research_macro.py"
+      ],
+      "local_reports": [
+        "data/research/macro_v1/macro_development_report.json"
+      ],
+      "evaluation_period": "2020-07-06..2023",
+      "primary": {
+        "target": "up",
+        "metric": "Brier delta",
+        "horizon_days": 28,
+        "pair": [
+          "L1_macro",
+          "L1"
+        ]
+      },
+      "comparison_families": {
+        "forecast_pairs": [
+          [
+            "L1_macro",
+            "L1"
+          ],
+          [
+            "L1_yield",
+            "L1"
+          ],
+          [
+            "L1_usd",
+            "L1"
+          ],
+          [
+            "M2_macro",
+            "M2"
+          ],
+          [
+            "L1_macro",
+            "frequency"
+          ],
+          [
+            "L1_macro",
+            "coinflip"
+          ]
+        ],
+        "targets": [
+          "up",
+          "loss_15"
+        ],
+        "horizons": [
+          28
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "mean_probability",
+          "actual_frequency"
+        ],
+        "references": [
+          "frequency",
+          "coinflip"
+        ],
+        "strata": [
+          "year",
+          "market"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ],
+        "lags_days": [
+          10,
+          17
+        ]
+      },
+      "result": "Both macro inputs worsened forecasts.",
+      "next": "Stop tested 28d changes; not a general rejection of macro/news."
+    },
+    {
+      "id": "COMB-001",
+      "retrospective": true,
+      "status": "closed",
+      "protocol_files": [
+        "COMB_PROTOCOL.md"
+      ],
+      "implementation_files": [
+        "research_comb.py"
+      ],
+      "local_reports": [
+        "data/research/comb_v1/comb_development_report.json"
+      ],
+      "evaluation_period": "2022-04-04..2023",
+      "primary": {
+        "target": "loss_15",
+        "metric": "Brier delta",
+        "horizon_days": 28,
+        "pair": [
+          "L1_all",
+          "L1_deriv"
+        ]
+      },
+      "comparison_families": {
+        "forecast_pairs": [
+          [
+            "L1_all",
+            "L1_deriv"
+          ],
+          [
+            "L1_all",
+            "L1"
+          ],
+          [
+            "L1_all",
+            "L1_value"
+          ],
+          [
+            "L1_deriv",
+            "L1"
+          ],
+          [
+            "L1_value",
+            "L1"
+          ],
+          [
+            "M2_value",
+            "M2"
+          ],
+          [
+            "L1_all",
+            "frequency"
+          ]
+        ],
+        "targets": [
+          "up",
+          "loss_15"
+        ],
+        "horizons": [
+          28
+        ],
+        "scores": [
+          "Brier",
+          "log_score",
+          "mean_probability",
+          "actual_frequency"
+        ],
+        "references": [
+          "frequency",
+          "coinflip"
+        ],
+        "strata": [
+          "year",
+          "market"
+        ],
+        "interval_blocks_weeks": [
+          13,
+          26,
+          52
+        ],
+        "purchase_rules": [
+          "L1",
+          "L1_value",
+          "L1_deriv",
+          "L1_all",
+          "dca",
+          "lump"
+        ],
+        "direct_purchase_pairs": [
+          [
+            "L1_all",
+            "L1"
+          ],
+          [
+            "L1_all",
+            "L1_deriv"
+          ],
+          [
+            "L1_all",
+            "L1_value"
+          ],
+          [
+            "L1_all",
+            "lump"
+          ]
+        ],
+        "rotations": [
+          "L1",
+          "L1_value",
+          "L1_deriv",
+          "L1_all"
+        ],
+        "purchase_horizon_weeks": 8,
+        "metrics": [
+          "BTC quantity",
+          "drawdown",
+          "waiting",
+          "tail",
+          "trigger rate"
+        ]
+      },
+      "result": "Combined model worse than derivatives alone; no meaningful purchase gain, risk overpredicted.",
+      "next": "Stop all-factor combination in this form."
+    }
+  ],
+  "prospective": [
+    {
+      "id": "BUY-001-journal-v1",
+      "status": "scheduled_first_origin",
+      "first_origin_utc": "2026-11-30T00:00:00Z",
+      "ledger": "buy_journal_receipts.json",
+      "implementation": "buy_journal.py",
+      "note": "Empty ledger before first scheduled issuance is expected. Original v1 remains frozen; any new challenger version separate."
+    },
+    {
+      "id": "forecast-journal-v1",
+      "status": "legacy",
+      "implementation": "forecast_journal.py",
+      "note": "Separate Binance journal; do not treat receipt as verified solely from documentation."
+    }
+  ]
+}
