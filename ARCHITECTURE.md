@@ -137,3 +137,5 @@ research_absorb.py — ABSORB-001, descriptive price response to executed spot s
 - Отдельная исследовательская проверка `research_derivative_sources.py` / `run_derivative_sources.bat`: локальный спотовый архив, часовые архивы фьючерса и премии, фиксированная выборка дневных OI ZIP. Кэш и отчёт только в `data/research/derivative_source_v1/`; старые OI архивы читаются без изменения. Не связана с панелью, журналами или мониторингом.
 
 - `research_derivative_panel.py` / `run_derivative_panel.bat` — отдельный фиксированный исторический набор на основе проверенного `source_audit.json`, повторное использование парсера OI и исходного кэша. `hourly_panel.json` содержит календарные UTC-часы и отдельные поля спота, perpetual, premium, OI :00/:55. `panel_coverage.json` связывает набор с исходными архивами и хэшами. Все данные локально, без изменений прогнозных журналов, панели или мониторинга.
+
+- `research_delever.py` / `run_delever_preflight.bat`: DELEVER-001 fixed descriptive shock inventory, reads verified historical hourly panel and coverage, emits local preflight only. Separate study, no live signal or prediction integration.
