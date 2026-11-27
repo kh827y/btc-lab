@@ -578,7 +578,7 @@
       {
         "id": "ABSORB-001",
         "kind": "descriptive_state_comparison",
-        "status": "descriptive_preflight_reviewed_pending_outcomes",
+        "status": "closed_descriptive",
         "decision_id": [
           "D1",
           "D3"
@@ -673,6 +673,56 @@
               ]
             },
             "interpretation": "Actual uploaded bytes hashed; origin hash, counts by group/year and primary SMDs independently reproduced from origin rows. Same manifest and reported counts as sandbox v2; report bytes differ, not claimed identical. No missing primary covariates. Marginal depth ranges overlap for 28/31 heavy and 21/21 light, not proof of joint overlap; depth and year imbalance remain substantial. Adjusted estimate is predeclared headline, not causal control; show unadjusted and sensitivity results. Block resampling uses ordered eligible origins, not a complete calendar (two 42-day and one 14-day gaps); 4/13-week intervals are approximate, 13-week sensitivity for unadjusted contrast only. Centered flow not absolute net selling; standardized price move not exact raw weekly return. No raw minute replay, independent full test execution or outcomes reviewed here. Permit single frozen descriptive run only, no retuning, no confirmation or trading rule."
+          },
+          {
+            "status": "owner_outcomes_reviewed_unresolved",
+            "report_sha256": "d89005829aae4b882290cf9cdc67502ab9757a4b42382604a15653288a6d7c9a",
+            "preflight_sha256": "12a775b3d1d837eb2c6e18ef9addcb94c31042428e71a26d9cbb2049cd1b14bc",
+            "data_manifest_sha256": "cc7dfc3c8f9b21117def8589d37cde9c384115028c47d843ad45f9312abb6dfe",
+            "result": {
+              "origins": 255,
+              "missing_wait7": 0,
+              "n": [
+                31,
+                21
+              ],
+              "wait7_group_mean_log": [
+                -0.006784459588024786,
+                -0.015672215016685347
+              ],
+              "primary_unadjusted_difference": 0.008887755428660563,
+              "ci90": [
+                -0.033095470246234306,
+                0.0526493450908669
+              ],
+              "ci90_block13": [
+                -0.0294360561443945,
+                0.04921247604024286
+              ],
+              "primary_adjusted_difference": -0.00019538894240998111,
+              "adjusted_ci90": [
+                -0.04487188226366148,
+                0.0516488790955977
+              ],
+              "wait28_difference": 0.00023529931690758135,
+              "mae7_difference": 0.006737511088382178,
+              "rv_ratio_difference": -0.036344424075905775,
+              "flow_next_week_difference": -0.1718588917367353,
+              "not_down_difference": 0.020830139560175157,
+              "not_down_ci90": [
+                -0.005390163807897566,
+                0.046691488100396035
+              ],
+              "weekday_sensitivity_differences": [
+                0.022319772960821632,
+                -0.010742955267356028,
+                0.042600340894013,
+                0.019960151347677074,
+                0.01633871712757244,
+                0.0641580713230372
+              ]
+            },
+            "interpretation": "Unresolved, not evidence of no effect. Adjusted headline near zero; interval excludes neither zero nor absolute differences of 1%, 3% or 5%. Two of six unadjusted weekday sensitivity intervals exclude zero; no clock selection, no independent replication, no variants. Secondary outcome intervals all include zero; flow_next_week missing one primary observation. No signal, policy or production integration. Retain code and reports for reproducibility. Independently verified report SHA256, matching preflight hash and exact 255 time/group pairs; recomputed primary group means, adjusted coefficient, 4/13-block raw intervals and 4-block adjusted interval from uploaded rows. Raw minute archive not replayed; full tests not independently rerun. Closure only of this specific contrast; no general inference about absorption."
           }
         ]
       }
