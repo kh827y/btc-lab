@@ -123,3 +123,5 @@ research_credentials.py now uses a project-local ignored plaintext key file inst
 OI protocol v2 uses a second fixed host-only transport schedule (worker draft, optional supervisor critique). No plan call; saved draft remains available on review failure/decline. All paid confirmations via 1/0.
 
 research_oi_readiness.py — separate source-readiness audit, latest 14 completed Fridays, checked Binance archives and approximate price unit check; unique local source record/report. Reuses oi_feature and source helpers without altering old parser/cutoff. No outcome data access for scoring or agent invocation.
+
+Risk journal launcher also runs the independent OI readiness audit after successful forecast issuance; forecast code, receipts and ledgers unchanged. No OI model, no scoring, no additional agent.

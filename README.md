@@ -139,3 +139,6 @@ DVOL completed. After update.bat, from the project folder use `.venv\Scripts\pyt
 
 ### OI source readiness
 Agent protocol v2 reviewed; do not repeat paid pilot. `update.bat`, `run_oi_readiness.bat`, send `data/research/oi_readiness_v1/<UTC-run>/oi_readiness_report.json`. Public data only, no API key or LLM. No market scoring or new forecast. Existing BUY/RISK journal schedule unchanged; see OI_FOLLOWUP_DRAFT.md.
+
+### OI source readiness follow-up
+First audit 14/14 passed, but latest completed Friday was Nov 20 (run before Nov 27 UTC close). For Nov 29: existing `run_risk_journal.bat` now runs independent OI availability check **after** saving risk forecast; no extra command or paid API. Send BUY and RISK forecast files before Monday 00 UTC even if OI fails; also send the new `oi_readiness_report.json` if produced. Do not send local key or raw archives. Forecast generation and anchoring unchanged.
