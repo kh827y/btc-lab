@@ -83,3 +83,6 @@ Bitstamp 4713/4713, Coinbase 4148/4148, до 26.11.2026 включительно
 
 ### BUY-001: финальная проверка данных завершена
 Отчёт buy_final_report.json SHA-256 6d9d9edbfb760e7a109e74ea8065b1bcdff5b8386d2f997c9b0db2ee65de6e47; pinned input hashes и frozen blobs соответствуют BUY_FINAL_LOCK.json. На каждой бирже 148 прогнозных исходов, 144 восьминедельных эпизода, missing_forecast_dates и skipped_purchase_dates пусты. Первое начало покупки 2024-01-01, последнее 2026-09-28; cutoff 2026-11-27 exclusive. Оба рынка отражают одни эпизоды. Сохранить локальные CSV, оригинальные кэши и четыре отчёта BUY; повторный сбор не нужен.
+
+### FLOW-001: данные
+Binance public BTCUSDT spot klines: quote asset volume и taker buy quote asset volume, закрытые дни UTC 2017-08-17..2023-12-31. Кэш канонического JSON rows (не байты оригинального HTTP), запрос/хэш/retrieval UTC. Суммарный семидневный дисбаланс нормируется на общий оборот. Старый binance-spot.json содержит net и close, не denominator; поэтому новый небольшой fixed snapshot вместо повторной minute download. Покрытие ещё предстоит проверить локально. Не смешивать с мультибиржевым CVD, не считать proof of initial availability. Исходы из прежних pinned Bitstamp/Coinbase CSV, только development.
