@@ -1,7 +1,7 @@
 import json
 import unittest
 from research_controller import ControllerError,STAGES
-from research_provider import CheapTransport,fixture_tool,smoke,ENDPOINT,MODELS,usage_from,units
+from research_provider import CheapTransport,fixture_tool,smoke,ENDPOINT,MODELS,usage_from,units,estimated_debit
 
 class Response:
     status=200
@@ -50,7 +50,7 @@ class ProviderTest(unittest.TestCase):
         r=smoke(t)
         self.assertEqual(len(sent),3)
         self.assertTrue(r["synthetic_evidence_only"])
-        self.assertEqual(t.estimated,2*units("supervisor",200)+units("worker",200))
+        self.assertEqual(t.estimated,2*estimated_debit("supervisor",100,100)+estimated_debit("worker",100,100))
         self.assertEqual(t.summary()["unknown_usage_attempts"],0)
         self.assertLessEqual(t.reserved,t.budget)
         self.assertNotIn("test-key",json.dumps(r))
@@ -100,6 +100,16 @@ class ProviderTest(unittest.TestCase):
                 usage_from({"usage":u})
         self.assertIsNone(usage_from({"usage":{"prompt_tokens":1,"completion_tokens":2,
                                              "total_tokens":3}})["reasoning_tokens_reported"])
+
+    def test_account_tariff_and_reservation(self):
+        self.assertEqual(estimated_debit("supervisor",256,216),708)
+        self.assertEqual(estimated_debit("worker",554,1375),1833)
+        self.assertEqual(estimated_debit("supervisor",1009,491),2250)
+        self.assertEqual(estimated_debit("worker",100,100),38)
+        self.assertEqual(estimated_debit("worker",100,101),191)
+        self.assertEqual(estimated_debit("supervisor",100,101),1508)
+        self.assertEqual(units("supervisor",472),3540)
+        self.assertEqual(units("worker",1929),1833)
 
     def test_fictional_only(self):
         r=fixture_tool("report_integrity",{"id":"DVOL-001"})

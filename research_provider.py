@@ -12,8 +12,12 @@ from research_controller import run,encode,ControllerError,require,STAGES,strict
 
 ENDPOINT="https://ru.cheapvibecode.ru/v1/chat/completions"
 MODELS={"supervisor":"gpt-6.2-sol","worker":"deepseek-v4.1-flash-1017"}
-# Historical estimated coefficients x3; NOT confirmed provider billing.
-WEIGHTS={"supervisor":450,"worker":57}
+# Account-specific observed tariff: 1.5 Sol, 0.19 DeepSeek, x5 if output > input.
+# Reserve x5 unconditionally for BOTH roles until scope of surcharge is confirmed.
+BASE_WEIGHTS={"supervisor":150,"worker":19}
+SURCHARGE=5
+WEIGHTS={k:v*SURCHARGE for k,v in BASE_WEIGHTS.items()}
+TARIFF_VERSION="cheap-account-x5-20261127"
 INPUT_MARGIN=2048
 MAX_HTTP_BYTES=512*1024
 TIMEOUT=240
@@ -38,6 +42,12 @@ def opener():
 
 def units(role,n):
     return (WEIGHTS[role]*n+99)//100
+
+
+def estimated_debit(role,prompt_tokens,completion_tokens):
+    """Account rule reported by owner; no cache discounts or hidden-token assumptions."""
+    weight=BASE_WEIGHTS[role]*(SURCHARGE if completion_tokens>prompt_tokens else 1)
+    return (weight*(prompt_tokens+completion_tokens)+99)//100
 
 
 def payload(role,request,cap):
@@ -130,12 +140,14 @@ class CheapTransport:
         require(type(obj) is dict and not obj.get("error"),"Provider returned error")
         u=usage_from(obj)
         rec["usage"]=u
-        observed=units(role,u["total_tokens"])
+        observed=estimated_debit(role,u["prompt_tokens"],u["completion_tokens"])
+        worst_case=units(role,u["total_tokens"])
         self.estimated+=observed
-        rec["estimated_base_units_x3"]=observed
+        rec["estimated_base_units"]=observed
+        rec["conservative_base_units_x5"]=worst_case
         rec["status"]="usage_received"
         require(u["prompt_tokens"]<=input_reserve and u["completion_tokens"]<=cap and
-                observed<=reservation,"Reported usage exceeds reservation")
+                worst_case<=reservation,"Reported usage exceeds reservation")
         require(obj.get("model")==MODELS[role],"Returned model ID mismatch")
         choices=obj.get("choices")
         require(isinstance(choices,list) and len(choices)==1 and isinstance(choices[0],dict),
@@ -155,10 +167,12 @@ class CheapTransport:
     def summary(self):
         return {"approved_estimated_base_units":self.budget,
                 "reserved_base_units":self.reserved,
-                "estimated_reported_usage_base_units_x3":self.estimated,
+                "tariff_version":TARIFF_VERSION,
+                "estimated_reported_usage_base_units":self.estimated,
                 "attempts":self.records,"unknown_usage_attempts":sum("usage" not in x for x in self.records),
                 "stop_reason":self.stop_reason,
-                "note":"Historical coefficients x3; actual charge not verified. Hidden billing, "
+                "note":"Owner-reported x5 surcharge when output exceeds input; reserves x5 on both routes. "
+                       "Actual charge not independently verified. Hidden billing, "
                        "rate changes and provider limit violations possible. No hard spending guarantee."}
 
 
