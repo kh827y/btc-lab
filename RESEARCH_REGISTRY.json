@@ -22,7 +22,40 @@
     ],
     "comparison_budget": "At most one primary comparison per new confirmatory study and at most three such studies per calendar quarter by default; owner may explicitly revise before registration. All attempted runs and negative results retained.",
     "gate": "No forecast/decision confirmation run without a predeclared planted-effect and null diagnostic. Gate failure blocks confirmation, not descriptive data audit. Synthetic success is not proof of market skill.",
-    "new_studies": []
+    "new_studies": [
+      {
+        "id": "DD-001",
+        "status": "registered_pending_run",
+        "kind": "descriptive",
+        "decision_id": [
+          "D2",
+          "D3"
+        ],
+        "protocol_files": [
+          "DD_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_drawdown.py"
+        ],
+        "local_reports": [
+          "data/research/drawdown_v1/drawdown_report.json"
+        ],
+        "evaluation_window": "2016-07-04..2023-12-25; observed high since 2015-07-20",
+        "target_and_horizon": "7/28/90d continuous returns and further downside; recovery survival; 28/90d static exposure illustrations",
+        "baseline": "unconditional same eligible origins",
+        "primary_comparison": null,
+        "synthetic_gate_spec_and_result": "not applicable to descriptive distribution; no forecast or decision confirmation",
+        "secondary_comparisons": [
+          "fixed depth bins 0/10/20/40/60 percent",
+          "episode median sensitivity",
+          "static exposure 0/25/50/75/100 percent",
+          "Coinbase price cross-check"
+        ],
+        "stopping_rule": "One report, no overwrite or optimization; no post-2023 numeric prices",
+        "code_and_data_versions": "DD-001-descriptive-v1, pinned BUY CSV hashes",
+        "attempts": []
+      }
+    ]
   },
   "studies": [
     {

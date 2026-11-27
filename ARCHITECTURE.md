@@ -97,3 +97,5 @@ research_macro.py — development-only matched macro probability comparisons, FR
 research_comb.py — isolated registered post-screening development follow-up, pinned input snapshots, shared BUY/VAL/OI/FUND features and BUY audit rotation; matched labels/models, practical equal-budget comparison, no final data or network. Existing frozen modules untouched.
 
 RESEARCH_REGISTRY.json — machine-readable retrospective study-family inventory and forward registration policy. RESEARCH_POLICY.md — decision objectives, synthetic gate requirements and staged roadmap. Future local tools will enforce registered study specs and budgets; no runtime enforcement or new agent controller implemented in this documentation change.
+
+research_drawdown.py — descriptive DD-001, shared pinned BUY loader/outcomes, observed closing peak and episode inventory, fixed depth groups, censored recovery and illustrative static exposure. No network, no forecast fit or decision confirmation. Separate local report; no frozen files changed.

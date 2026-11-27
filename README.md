@@ -100,3 +100,6 @@ MACRO timeout recovery: update.bat and rerun run_macro_development.bat. Automati
 
 ### Новый этап после аудита Fable
 См. RESEARCH_POLICY.md / RESEARCH_REGISTRY.json. Новых запусков скрининга не требуется. Первый BUY journal — 29.11.2026 UTC, отправить forecast.json до 30.11 00:00 UTC. Далее новый descriptive drawdown/recovery protocol и synthetic checker; пока не реализованы. Не удалять старые данные и отчёты.
+
+### DD-001
+`update.bat`, `run_drawdown.bat`, пришли `data/research/drawdown_v1/drawdown_report.json`. Uses existing pinned BTC/USD CSVs, no downloads, no keys. Descriptive only; see DD_PROTOCOL.md. BUY journal unchanged.
