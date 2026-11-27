@@ -1,4 +1,4 @@
-"""Minimal sequential research controller. Dry-run only; no provider transport."""
+"""Minimal sequential research controller. Provider transport injected by host; CLI remains dry-run only."""
 import argparse
 import json
 from dataclasses import dataclass,field
@@ -15,8 +15,8 @@ MAX_REQUEST_BYTES=48000
 MAX_TOTAL_REQUEST_BYTES=96000
 MAX_RESPONSE_BYTES=12000
 MAX_TOTAL_RESPONSE_BYTES=28000
-MAX_OUTPUT_TOKENS=5200
-STAGES=(("supervisor","plan",1200),("worker","analyze",2000),("supervisor","review",2000))
+MAX_OUTPUT_TOKENS=18432
+STAGES=(("supervisor","plan",4096),("worker","analyze",8192),("supervisor","review",6144))
 SYSTEM_RULES=(
     "BTC-Lab research assistant. No execution, writes, trading, new agents, arbitrary paths, "
     "network or hidden outcome access. Historical studies and failed gates are not confirmation. "
@@ -161,7 +161,7 @@ class Budget:
 
 
 def run(task,transport,tool_runner=dispatch):
-    """Host-injected transport. No real provider implementation in v1.
+    """Host-injected transport. No provider selection by model.
     The model can supply tool operation/id only, never host parameters.
     Returned text is advisory; never used as executable instructions.
     """

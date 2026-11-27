@@ -111,3 +111,5 @@ research_dvol.py — official public Deribit daily DVOL acquisition and coverage
 research_tools.py — narrow local read-only dispatch, explicit operations/argument allowlist, fixed metadata and report paths, 24 KB output limit, bounded reads, journal receipt hash checks; no raw report contents, shell, network, writes, API calls or held-out outcome access. Host controls root/date, never expose those to model. Not a general filesystem sandbox or complete agent system.
 
 research_controller.py — host-side sequential three-call controller with strict JSON and explicit tool/evidence allowlist, bounded payloads, no retry, human review required. DryRunTransport is deterministic local stub only. No provider API, credentials, or execution capability. See AGENT_CONTROLLER.md.
+
+research_provider.py — separate owner-launched synthetic-only CheapVibeCode transport, fixed routes, bounded requests and responses, estimated base-unit reservation, usage validation, no retry/redirect, ephemeral key. No real registry or journal reads in pilot. No provider-side spending guarantee.

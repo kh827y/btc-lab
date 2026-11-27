@@ -121,3 +121,6 @@ DVOL completed. After update.bat, from the project folder use `.venv\Scripts\pyt
 
 ### Агентный контроллер v1
 После update.bat: `.venv\Scripts\python.exe research_controller.py --dry-run`. Тестовые ответы, 4 локальные read-only операции, никакой сети или расходов. Реальные модели пока не подключены; см. AGENT_CONTROLLER.md.
+
+### Первый реальный API pilot
+`update.bat`, `run_agent_smoke.bat`, YES, затем ключ скрыто в консоли. Только вымышленные данные, не реальные журналы или архивы. Пришли новый JSON из `data/research/agent_smoke/` и изменение баланса, не ключ. При ошибке не повторяй. 200000 — расчётный резерв базовых токенов, не гарантия списания. См. AGENT_CONTROLLER.md.
