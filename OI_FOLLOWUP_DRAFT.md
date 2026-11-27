@@ -20,3 +20,5 @@ First source audit completed 27 Nov 17:16 UTC, 14/14 through 20 Nov. Report dige
 OI-GATE-001 diagnostic registered separately in OI_GATE_PROTOCOL.md; illustrative effect convention only, no owner MUE or actual confirmation. Candidate price comparator fixed for synthetic use, not selected on real outcomes. Source readiness remains pending fresh Friday availability.
 
 OI-GATE-001 closed not passed: primary 86 insufficient sensitivity, even 260 origins only qualified detection for a larger-than-.01 oracle effect; price baseline inadequate vs simple reference in every size. No historical OI confirmation and no retuning. Await independent methodology audit; source readiness continues separately. See ROADMAP.md.
+
+Superseded by v3 operating policy: historical confirmation retired, no further gates, OI data collection descriptive only. Post-hoc matched closure check in registry. No new OI estimator.

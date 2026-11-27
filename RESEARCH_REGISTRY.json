@@ -831,7 +831,78 @@
         ]
       },
       "result": "Promising against L1, short and overlapping sample.",
-      "next": "One future registered confirmation against stronger reference, conditional on gate."
+      "next": "Historical OI confirmation retired after OI-GATE-001 and matched-date descriptive comparison; keep source observations only, no fitted OI model.",
+      "followup_descriptive": {
+        "kind": "post_hoc_closure_check_no_refit",
+        "report_sha256": {
+          "oi": "b7f8194b57101d22dac1af557c9314427df47b47a7d771ecd90ae7daf74d8596",
+          "risk": "a752a81be2b138949ce825e2a412d38396168a187279c655adbf5130e51cc1c6"
+        },
+        "matched_origins": 86,
+        "years": [
+          2022,
+          2023
+        ],
+        "year_counts": [
+          38,
+          48
+        ],
+        "models": [
+          "L1",
+          "L1_oi",
+          "empirical_expanding",
+          "scaled_expanding"
+        ],
+        "bitstamp": {
+          "events": [
+            18,
+            2
+          ],
+          "brier_all": [
+            0.21672624279756833,
+            0.19445229030129169,
+            0.19661765297300807,
+            0.17108931099391542
+          ],
+          "brier_2022": [
+            0.2535600017036499,
+            0.24704841549160445,
+            0.2611573040716989,
+            0.31003751650241423
+          ],
+          "brier_2023": [
+            0.1875661836635871,
+            0.1528136911922941,
+            0.14552376251987784,
+            0.06108864829968717
+          ]
+        },
+        "coinbase": {
+          "events": [
+            18,
+            3
+          ],
+          "brier_all": [
+            0.22244776070848796,
+            0.1988505182181583,
+            0.20294110574669627,
+            0.17951121945374585
+          ],
+          "brier_2022": [
+            0.253757998279634,
+            0.24716453072417394,
+            0.25886536008712613,
+            0.3026894375375987
+          ],
+          "brier_2023": [
+            0.19766048929799734,
+            0.16060192498422926,
+            0.1586677377271893,
+            0.08199513013736232
+          ]
+        },
+        "interpretation": "OI improved weak L1 within both years; worse than scaled expanding overall and in 2023 on both markets. References have different historical training histories, comparison is decision-relevant descriptive, not isolated causal OI effect. No new model, no fresh confirmation."
+      }
     },
     {
       "id": "MACRO-001",

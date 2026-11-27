@@ -147,3 +147,6 @@ First audit 14/14 passed, but latest completed Friday was Nov 20 (run before Nov
 `update.bat`, `run_oi_gate.bat`; send `data/research/oi_gate_v1/oi_gate_report.json`. If stopped, send console error and `oracle_preflight.json` if present. Fixed synthetic diagnostic, no real market data or keys; no repeat for pass. Existing Sunday journals unchanged. See OI_GATE_PROTOCOL.md.
 
 OI-GATE-001 completed, failed overall at every sample size. Do not rerun. No additional bat needed now; Sunday BUY/RISK issuance unchanged. See ROADMAP.md.
+
+### Текущий план: таблица решений
+После аудита Fable исторический OI закрыт; новых gate/платных запусков не нужно. В воскресенье update.bat, run_buy_journal.bat, run_risk_journal.bat как прежде. Последний дополнительно создаёт data/research/decision_sheet/<origin>/decision_sheet.md из существующих данных, без платного API. Пришли оба forecast JSON вовремя; OI report и decision_sheet.md если созданы. DVOL пока отдельно. Не откладывай отправку прогнозов из-за дополнительных таблиц.

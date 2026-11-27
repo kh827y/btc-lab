@@ -127,3 +127,5 @@ research_oi_readiness.py — separate source-readiness audit, latest 14 complete
 Risk journal launcher also runs the independent OI readiness audit after successful forecast issuance; forecast code, receipts and ledgers unchanged. No OI model, no scoring, no additional agent.
 
 research_oi_gate.py — registered synthetic OI-feature design diagnostic, daily price proxy paths, fixed rolling matched ridge fits, exact finite-path oracle, independent null calibration, reference checks and per-history uncertainty. No real data, paid calls or confirmation authorization. Metadata pilot only exports original approved IDs; extra local studies are not exported.
+
+research_decision_sheet.py — offline presentation using verified DD-001, saved risk forecast and price source pages only. No fitting or new network, separate output, no journal mutation. Optional after existing risk launch; paid agent system deferred.
