@@ -370,7 +370,7 @@
       {
         "id": "TREND-002",
         "kind": "descriptive_schedule_feasibility",
-        "status": "descriptive_preflight_reviewed_pending_comparison",
+        "status": "closed_descriptive",
         "decision_id": [
           "D1",
           "D3"
@@ -455,6 +455,97 @@
               }
             },
             "interpretation": "Counts recomputed from episode rows. Variation present in every year 2016–2023, both venues; descriptive comparison justified, not statistical power or confirmation. Raw candles not independently replayed. No change to fixed signals, horizon, sample or fee."
+          },
+          {
+            "status": "comparison_completed",
+            "report_sha256": "bff399b988197187b8fb3cc71427e5892726420cd4ce660dab8fd31b674e3fb6",
+            "result": {
+              "bitstamp": {
+                "n": [
+                  31,
+                  31
+                ],
+                "recovery_vs_fixed7_mean_pp": [
+                  1.362382258651986,
+                  -4.630423985836393
+                ],
+                "median_pp": [
+                  0,
+                  -0.5276782300910998
+                ],
+                "better_equal_worse": [
+                  [
+                    11,
+                    7,
+                    13
+                  ],
+                  [
+                    8,
+                    7,
+                    16
+                  ]
+                ],
+                "later_entry_better_worse": [
+                  [
+                    0,
+                    6
+                  ],
+                  [
+                    5,
+                    16
+                  ]
+                ],
+                "cash_better_worse": [
+                  [
+                    11,
+                    7
+                  ],
+                  [
+                    3,
+                    0
+                  ]
+                ]
+              },
+              "coinbase": {
+                "mean_pp": [
+                  1.3799586967571893,
+                  -4.680110860057249
+                ],
+                "better_equal_worse": [
+                  [
+                    11,
+                    7,
+                    13
+                  ],
+                  [
+                    8,
+                    7,
+                    16
+                  ]
+                ]
+              },
+              "early_bitstamp": {
+                "n": [
+                  47,
+                  46
+                ],
+                "mean_pp": [
+                  1.0501514781657106,
+                  -2.169035456196172
+                ],
+                "later_entry_better_worse": [
+                  [
+                    0,
+                    10
+                  ],
+                  [
+                    8,
+                    21
+                  ]
+                ]
+              }
+            },
+            "interpretation": "Recomputed medians of four outcome metrics and primary paired means from all eligible report rows, verified report SHA256 and input identities against pinned protocol. No independent raw candle replay or CI verification. Positive 28d average recovery-vs-fixed7 comes from cash stays; all six actual later entries underperform, replicated across same market cycles and all ten early-inclusive entries. 90d mean negative even omitting any one connected overlap cluster. Reduced exposure explains much of downside reduction; no duration-matched random control, no proof of timing skill or optimal allocation. Keep MA50 as context, not mandatory entry. No retuning."
           }
         ]
       }
