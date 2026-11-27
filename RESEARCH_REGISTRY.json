@@ -613,14 +613,26 @@
         "data_and_availability": "Local checksum-verified Binance Vision minute archives; all features use hours strictly before the cutoff; archive retrieval date is not original publication proof",
         "evaluation_and_dependence": "Non-overlapping weekly outcome windows; circular moving-block bootstrap over weekly origins; shared market cycles, counts are not independent observations",
         "synthetic_gate_spec_and_result": "Not applicable, descriptive only; code tested on synthetic null and planted worlds as implementation checks, not as market evidence",
-        "stopping_rule": "One immutable preflight, then one immutable outcome report only if both validity gates and the sample floor pass and the reviewed preflight hash is supplied; no variants after outcomes; result closes only this contrast, not the mechanism",
-        "code_and_data_versions": "ABSORB-001-descriptive-v1; data manifest SHA-256 recorded in each report",
+        "stopping_rule": "One immutable preflight, then one immutable outcome report only if both validity gates, the sample floor and the comparability gate pass and the reviewed preflight hash is supplied; no variants after outcomes and no further state-definition variants to obtain a pass; result closes only this contrast, not the mechanism",
+        "code_and_data_versions": "ABSORB-001-descriptive-v2 (v1 frozen at commit 01b614d; Amendment 1 before any outcome); data manifest SHA-256 recorded in each report",
         "prior_exposure": [
           "2026-11-27 exploratory probe on Binance BTCUSDT daily klines 2017-08-17..2026-11-26: same-day return/taker-imbalance correlation, slope and mean imbalance by year, imbalance autocorrelation, zero-fee window dispersion and volume; no forward returns",
           "FLOW-001 used the same venue's daily taker flow 2017-2023 against 28-day outcomes",
           "BUY-001, DD-001, RISK-001 and TREND-001/002 exposed 2018-2023 price outcomes; not a holdout"
         ],
-        "attempts": []
+        "attempts": [
+          {
+            "status": "sandbox_preflight_v1_superseded_no_outcomes",
+            "sandbox_report_sha256": "df42f32748549e5108444aad14fcdceda00e832c8e2ac36f5887c27991917340",
+            "summary": "Implementation check on independently downloaded Binance archives (77 files, manifest cc7dfc3c8f9b21117def8589d37cde9c384115028c47d843ad45f9312abb6dfe). Validity gates passed, but uncentred weekly flow tracked baseline drift: 47 of 52 weeks of 2020 heavy, 12 of 15 D-light in 2022, depth SMD 1.89. Not used; led to Amendment 1."
+          },
+          {
+            "status": "sandbox_preflight_v2_implementation_check_no_outcomes",
+            "sandbox_report_sha256": "00b8c1d7254660988b9fe88684499f76d0ab72fd885c78d498ad5dd8fea6a435",
+            "summary": "Same archives after Amendment 1. Gates pass; 255 origins; D-heavy 31, D-light 21; largest single-year share 0.32/0.43; SMD R -0.08, log sigma 0.14, depth 0.87 (adjusted estimate is headline); approximate minimum detectable log return 0.059. No forward outcome computed.",
+            "interpretation": "Sandbox check only. Owner's local preflight is the report of record; outcomes remain closed until it is reviewed."
+          }
+        ]
       }
     ]
   },

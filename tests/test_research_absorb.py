@@ -192,7 +192,35 @@ class StateTest(unittest.TestCase):
         self.assertEqual(len(planted["rows"]), planted["origins"])
 
 
-class FeeRegimeTest(unittest.TestCase):
+class RegimeTest(unittest.TestCase):
+    def test_baseline_flow_drift_does_not_set_the_state(self):
+        # The venue's baseline taker imbalance steps down by two hourly SDs and stays there.
+        bars, _ = world()
+        shift = 20000
+        bars["tbq"][shift:] -= 0.05 * bars["qv"][shift:]
+        rows = ra.states(bars, ra.hourly_features(bars))
+        later = [r for r in rows if r["status"] == "classified" and r["c"] > shift + ra.TRANSITION_H]
+        heavy = sum(r["tercile"] == "heavy" for r in later[:52]) / 52
+        self.assertTrue(0.15 < heavy < 0.55, heavy)
+
+    def test_regime_separated_groups_are_not_comparable(self):
+        def row(i, group, year, depth):
+            c, k = ra.hidx(datetime(year, 1, 7, tzinfo=UTC)) + 168 * i, i % 20
+            return {"status": "classified", "c": c, "time": ra.iso(c), "group": group, "R": -1.0 - 0.01 * k,
+                    "F": 0.1 * k, "E": 0.1 * k, "log_sigma": -5.0 + 0.01 * k, "depth": depth - 0.01 * k,
+                    "hours": 168, "reference_weeks": 104}
+        n = ra.hidx(datetime(2024, 1, 1, tzinfo=UTC))
+        spread = [row(i, "D-heavy", 2019 + i % 4, -0.3) for i in range(16)]
+        mixed = spread + [row(i + 20, "D-light", 2019 + i % 4, -0.3) for i in range(16)]
+        self.assertTrue(ra.adequacy(mixed, n)["primary"]["comparable_groups"])
+        one_year = spread + [row(i + 20, "D-light", 2022, -0.3) for i in range(16)]
+        self.assertFalse(ra.adequacy(one_year, n)["primary"]["comparable_groups"])
+        deep = spread + [row(i + 20, "D-light", 2019 + i % 4, -0.9) for i in range(16)]
+        result = ra.adequacy(deep, n)["primary"]
+        self.assertTrue(result["floor_passed"])
+        self.assertGreater(abs(result["balance_smd"]["depth"]), ra.SMD_OVERLAP)
+        self.assertFalse(result["comparable_groups"])
+
     def test_transition_weeks_excluded(self):
         n = ra.hidx(datetime(2023, 9, 1, tzinfo=UTC))
         rng = np.random.default_rng(3)

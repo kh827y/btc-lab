@@ -1,6 +1,6 @@
 # ABSORB-001 — price response to executed spot selling (frozen before any forward outcome)
 
-Version `ABSORB-001-descriptive-v1`. Decisions D1/D3. **Descriptive study, not confirmation.** No fitted forecast, no trading rule, no tuning. Implementation: `research_absorb.py`. Reports: `data/research/absorb_v1/absorb_preflight.json`, then `absorb_outcomes.json`. One run of each; originals are never overwritten.
+Version `ABSORB-001-descriptive-v2` (v1 frozen at commit 01b614d; Amendment 1 below, made before any forward outcome was computed). Decisions D1/D3. **Descriptive study, not confirmation.** No fitted forecast, no trading rule, no tuning. Implementation: `research_absorb.py`. Reports: `data/research/absorb_v1/absorb_preflight.json`, then `absorb_outcomes.json`. One run of each; originals are never overwritten.
 
 ## Question
 
@@ -22,7 +22,7 @@ Local verified Binance BTCUSDT spot one-minute archives from `download_minutes.b
 ## Definitions (all point-in-time)
 
 1. **Hour.** Valid only with all 60 accepted minutes and positive quote volume; gaps are never filled. Return `r = ln(close/open)` within the hour; signed flow `q = 2·takerBuyQuote − quoteVolume` (USDT). Both refer to exactly the same interval.
-2. **Scaling.** For hour h, over the 672 hours strictly before h (≥538 valid): `σ` = root-mean-square of `r`, `s` = standard deviation of `q`. `ρ = r/σ`, `φ = q/s`. *Rationale:* 28 days is long enough for stable scales and short enough to adapt to regime shifts; scaling flow by its own recent dispersion rather than by volume survives fee-driven churn (the probe showed imbalance dispersion falling to a quarter while volume doubled).
+2. **Scaling.** For hour h, over the 672 hours strictly before h (≥538 valid): `σ` = root-mean-square of `r`, `m` and `s` = mean and standard deviation of `q`. `ρ = r/σ`, `φ = (q − m)/s`. *Rationale:* 28 days is long enough for stable scales and short enough to adapt to regime shifts; scaling flow by its own recent dispersion rather than by volume survives fee-driven churn (the probe showed imbalance dispersion falling to a quarter while volume doubled). Flow is centred because the venue's baseline taker imbalance drifts for months (Amendment 1); F therefore measures this week's net taker flow relative to the previous four weeks, not its absolute level.
 3. **Weekly state** at cutoff c = Sunday 00:00 UTC (Saturday close, the lab's weekly convention), from the 168 hours before c (≥160 valid): `R = Σρ/√n`, `F = Σφ/√n`. Summing standardized hours gives unit-scale variables comparable across years; `√n` keeps weeks with a few missing hours comparable.
 4. **Reference** at c: the previous 104 weekly cutoffs with valid (R, F), at least 52. Two years so that thresholds are not set by a single regime.
 5. **Down week:** `R ≤` 33rd percentile of reference R (a decline that is large relative to prevailing volatility).
@@ -47,8 +47,9 @@ Reported without pass/fail: hourly/daily/weekly correlations and slopes by year;
 - **Balance** between D-heavy and D-light: standardized mean differences (SMD) of R, log σ and depth. Any |SMD| > 0.25 (the conventional matching flag) makes the covariate-adjusted estimate the headline in Stage C. With about 30 weeks per group an SMD of this size often arises by chance, so this is a reporting rule, not a test; both estimates are always shown.
 - **Minimum detectable difference**, stated before outcomes: `2.487·√(1/n₁+1/n₂)` in σ-units (two-sided 10%, 80% power, assuming a standardized outcome SD near 1), converted with the median weekly volatility. A planning figure.
 - **Floor:** outcomes stay closed if either primary group has fewer than 10 origins or spans fewer than 3 calendar years — below that a mean difference of weekly BTC returns is noise in one regime. This is the only sample-size barrier; anything above it is reported with its detectable difference rather than blocked.
+- **Comparability gate** (Amendment 1): outcomes stay closed if D-heavy and D-light differ by more than one pooled SD on R, log σ or depth, or if a single calendar year supplies more than half of either group. Beyond that the contrast compares market regimes rather than flow, and a linear adjustment would extrapolate instead of control.
 
-`outcomes_permitted` = both Stage A gates and the floor.
+`outcomes_permitted` = both Stage A gates, the floor and the comparability gate.
 
 ## Stage C — forward outcomes (one locked run)
 
@@ -77,4 +78,12 @@ The report states whether the interval excludes zero and which absolute differen
 
 ## Amendments
 
-None. Any change after the freeze commit is listed here with date, reason and whether outcomes had been opened.
+**Amendment 1 — 27 Nov 2026, before any forward outcome.** The v1 preflight was run once as an implementation check on independently downloaded copies of the same Binance archives (77 files, manifest `cc7dfc3c…6dfe`; report SHA-256 `df42f327…7340`, kept locally, not used). Both validity gates passed (hourly flow–return correlation 0.53–0.73 in each year 2018–2023), but Stage B showed that the v1 state mostly measured slow drift in the venue's baseline taker imbalance rather than week-specific selling: yearly mean F ran from +2.5 (2018–19) to about −2 (2020–23), 47 of 52 weeks of 2020 were classed `heavy`, 12 of 15 D-light origins fell in 2022, and the primary groups were 1.9 pooled SDs apart on drawdown depth. Opening outcomes would have compared bull-market with bear-market declines. Changes, made without computing any outcome:
+
+1. Flow is centred on its prior 28-day mean before scaling (definition 2).
+2. A comparability gate is added to Stage B. The limits (one pooled SD, half of a group from one year) were fixed before the amended preflight was run.
+3. Version string is v2, so a v1 preflight cannot unlock outcomes.
+
+The amended preflight, run once on the same archives (report SHA-256 `00b8c1d7…a435`): gates pass; 255 origins; D-heavy 31, D-light 21; largest single-year share 32% and 43%; SMD R −0.08, log σ 0.14, depth 0.87 (flagged, so the adjusted estimate is the headline); approximate minimum detectable difference 5.9% in log return. Drawdown depth remains materially unbalanced and is the main caveat for interpretation.
+
+This is the only planned amendment. Had the amended measure failed the gates, the study would have stopped at the preflight; no further variants of the state definition will be tried to obtain a pass. The owner's local preflight is the report of record.

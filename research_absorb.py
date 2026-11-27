@@ -17,7 +17,7 @@ import numpy as np
 from binance_minute import FIRST, MINUTE, ROOT as MINUTE_ROOT, digest, filename, iter_klines, periods
 from forecast_journal import encode, new_file
 
-VERSION = "ABSORB-001-descriptive-v1"
+VERSION = "ABSORB-001-descriptive-v2"   # v2: protocol amendment 1, before any outcome
 ROOT = Path(__file__).resolve().parent / "data" / "research" / "absorb_v1"
 UTC = timezone.utc
 BASE = datetime(2017, 8, 17, tzinfo=UTC)
@@ -33,7 +33,8 @@ FEE_BOUNDARIES = (datetime(2022, 7, 8, 14, tzinfo=UTC), datetime(2023, 3, 22, tz
 TRANSITION_H = WEEK_H + SCALE_H   # weeks whose scaling windows straddle a boundary
 BLOCK_WEEKS, BLOCK_SENSITIVITY, RESAMPLES, SEED = 4, 13, 10_000, 20261127
 FLOOR_N, FLOOR_YEARS = 10, 3
-SMD_LIMIT = 0.25
+SMD_LIMIT = 0.25                  # flag: adjusted estimate becomes the headline
+SMD_OVERLAP, YEAR_SHARE_MAX = 1.0, 0.5   # gate: beyond this the groups are different regimes
 MDE_Z = 1.645 + 0.842             # two-sided 10% test, 80% power
 PRIMARY, SECONDARY = ("D-heavy", "D-light"), ("N-heavy", "N-light")
 MAGNITUDES = (0.01, 0.03, 0.05)
@@ -132,22 +133,27 @@ def build_hourly(minute_root=MINUTE_ROOT, stop=DEV_END, progress=print):
 # ---------- point-in-time features ----------
 
 def hourly_features(bars):
-    """Within-hour return and signed taker quote flow, scaled by strictly prior 28 days."""
+    """Within-hour return and signed taker quote flow, scaled by strictly prior 28 days.
+
+    Flow is also centred on its prior 28-day mean: the venue's baseline taker imbalance
+    drifts for months and is not information about this week's selling.
+    """
     v = bars["valid"]
     with np.errstate(invalid="ignore", divide="ignore"):
         r = np.where(v, np.log(bars["close"] / bars["open"]), np.nan)
     q = np.where(v, 2 * bars["tbq"] - bars["qv"], np.nan)
     n = len(r)
-    sigma, sq = np.full(n, np.nan), np.full(n, np.nan)
+    sigma, sq, mq = np.full(n, np.nan), np.full(n, np.nan), np.full(n, np.nan)
     for h in range(SCALE_H, n):
         w = v[h - SCALE_H:h]
         if w.sum() < SCALE_MIN:
             continue
         x = r[h - SCALE_H:h][w]
-        s_r, s_q = math.sqrt(float(np.mean(x * x))), float(np.std(q[h - SCALE_H:h][w]))
+        flow = q[h - SCALE_H:h][w]
+        s_r, s_q = math.sqrt(float(np.mean(x * x))), float(np.std(flow))
         if s_r > 0 and s_q > 0:
-            sigma[h], sq[h] = s_r, s_q
-    return {"r": r, "q": q, "sigma": sigma, "sq": sq, "rho": r / sigma, "phi": q / sq}
+            sigma[h], sq[h], mq[h] = s_r, s_q, float(np.mean(flow))
+    return {"r": r, "q": q, "sigma": sigma, "sq": sq, "rho": r / sigma, "phi": (q - mq) / sq}
 
 
 def cutoffs(n, phase=0):
@@ -396,11 +402,15 @@ def adequacy(rows, n):
                 "floor_passed": bool(min(na, nb) >= FLOOR_N and min(years) >= FLOOR_YEARS)}
 
     primary, bal = size(PRIMARY), balance(PRIMARY)
+    controls = [bal[k] for k in ("R", "log_sigma", "depth")]
     imbalanced = [k for k in ("R", "log_sigma", "depth") if bal[k] is not None and abs(bal[k]) > SMD_LIMIT]
+    # Groups a full SD apart on a control, or mostly one calendar year, compare regimes rather than flow.
+    comparable = bool(all(v is not None and abs(v) <= SMD_OVERLAP for v in controls)
+                      and all(v is not None and v <= YEAR_SHARE_MAX for v in primary["largest_year_share"]))
     return {"origins": len(orig), "group_counts": dict(groups),
             "group_counts_by_year": {g: dict(c) for g, c in by_year.items()},
             "primary": {**primary, "balance_smd": bal, "group_means": means(PRIMARY),
-                        "imbalanced_covariates": imbalanced,
+                        "imbalanced_covariates": imbalanced, "comparable_groups": comparable,
                         "headline_estimate": "adjusted" if imbalanced else "unadjusted"},
             "secondary": {**size(SECONDARY), "balance_smd": balance(SECONDARY), "group_means": means(SECONDARY)},
             "mde_assumption": "Standardized 7-day outcome SD of about 1; two-sided 10%, 80% power. "
@@ -421,7 +431,8 @@ def preflight_report(bars, data):
     rows = states(bars, feat)
     n = len(bars["valid"])
     val, adq = validity(bars, feat, rows), adequacy(rows, n)
-    permitted = all(val["gates"].values()) and adq["primary"]["floor_passed"]
+    permitted = (all(val["gates"].values()) and adq["primary"]["floor_passed"]
+                 and adq["primary"]["comparable_groups"])
     return clean({
         "protocol": VERSION, "kind": "measurement_validity_and_sample_adequacy",
         "confirmation_authorized": False, "outcomes_scored": False, "data": data,
@@ -546,6 +557,8 @@ def run_preflight(root=ROOT, minute_root=MINUTE_ROOT, stop=DEV_END):
     print("Validity gates:", v["gates"], flush=True)
     print("Primary groups", PRIMARY, "n =", a["primary"]["n"], "balance SMD", a["primary"]["balance_smd"], flush=True)
     print("Approx. minimum detectable log return:", a["primary"]["minimum_detectable_log_return_approx"], flush=True)
+    print("Largest single-year share:", a["primary"]["largest_year_share"],
+          "comparable groups:", a["primary"]["comparable_groups"], flush=True)
     print("Outcomes permitted:", report["outcomes_permitted"], flush=True)
     print("Preflight SHA-256:", sha, flush=True)
     print("Send:", target, flush=True)
