@@ -98,3 +98,6 @@ Funding archive complete 4383/4383, snapshot pinned (80b2346eebc93691361d025f9eb
 
 
 OI first coverage 136/174, all rejected dates before 2021-05-28; prior failed coverage retained as coverage_before_parser_repair.json, valid cached ZIPs reused. Parser repair retains all checksum-verified ZIPs even if schema fails, no accepted snapshot until checks pass. Dense archives and consistent OI duplicates permitted, conflicting chosen timestamp rejected; 90% gate unchanged.
+
+### OI-001 / MACRO-001
+OI repaired coverage 173/174, only 2021-02-19 missing; 136 previously valid retained unchanged; 10365 duplicate rows, no conflicting OI timestamps in accepted archives. Snapshot c1d6295a30717177eacf981cb0f046d03003641638551700025a00085ab7b113. No fill. MACRO new public FRED CSV DFII10/DTWEXBGS 2019-02-04..2023-12-31, exact raw bytes/hash/source/retrieval, weekday coverage by year, bounded holiday lookup. H.10 weekly publication and 2019 methodology change documented in MACRO_PROTOCOL.md. Historical vintage not established, no claims of original availability; if candidate, ALFRED check. Coverage yet unverified.

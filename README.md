@@ -86,3 +86,6 @@ ETF TFTC открывается в разделе История без ключ
 
 ### OI-001
 `update.bat`, `run_oi_development.bat`. Скачивает только пятничные Binance metrics ZIP/checksums, использует уже полученный funding_snapshot.json и USD цены. Пришли data/research/oi_v1/oi_development_report.json, при ошибке покрытия — coverage.json или текст ошибки. Первичная загрузка примерно 174 небольших ZIP с проверками, не требуются API keys. FUND development завершён. См. OI_PROTOCOL.md.
+
+### MACRO-001
+`update.bat` затем `run_macro_development.bat`. Два небольших публичных CSV FRED, прежние BTC USD snapshots; без ключей/новых зависимостей. Пришли data/research/macro_v1/macro_development_report.json (при ошибке coverage.json или текст). OI development завершён, не повторять. См. MACRO_PROTOCOL.md.
