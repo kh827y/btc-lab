@@ -1,8 +1,11 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 from datetime import date
 import numpy as np
 from research_buy import DAY,DEV_END
-from research_macro import START,EVAL_START,parse,macro_feature,latest,predict,replay
+from research_macro import START,EVAL_START,parse,macro_feature,latest,predict,replay,collect,url,alternate_url,obtain
 
 class MacroTest(unittest.TestCase):
     def test_parse(self):
@@ -49,3 +52,61 @@ class MacroTest(unittest.TestCase):
                     v[d]=100.
         b,_=replay(prices,data,end)
         self.assertEqual(a[0],b[0])
+
+    def full_csv(self,series,source="fred"):
+        column=series if source=="fred" else series+"_20261125"
+        ds=(START+i*DAY for i in range((DEV_END-START).days))
+        return ("observation_date,"+column+"\n"+"".join(f"{d},1.0\n" for d in ds if d.weekday()<5)).encode()
+
+    @patch("research_macro.time.sleep")
+    def test_fallback_and_cache(self,_sleep):
+        requests=[]
+        def fetch(u):
+            requests.append(u)
+            if u==url("DFII10"):
+                raise TimeoutError("read timeout")
+            if u==alternate_url("DFII10"):
+                return self.full_csv("DFII10","alfred")
+            if u==url("DTWEXBGS"):
+                return self.full_csv("DTWEXBGS")
+            self.fail(u)
+        with TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            data,quality=collect(root,fetch)
+            self.assertEqual(quality["DFII10"]["source"],"alfred")
+            self.assertEqual(quality["DTWEXBGS"]["source"],"fred")
+            self.assertEqual(len(quality["DFII10"]["failed_attempts"]),1)
+            self.assertTrue(data["DFII10"])
+            n=len(requests)
+            self.assertEqual(collect(root,fetch),(data,quality))
+            self.assertEqual(len(requests),n)
+
+    @patch("research_macro.time.sleep")
+    def test_failed_download_preserves_other_series(self,_sleep):
+        def fetch(u):
+            if u==url("DTWEXBGS"):
+                return self.full_csv("DTWEXBGS")
+            raise TimeoutError("unavailable")
+        with TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            with self.assertRaisesRegex(ValueError,"coverage insufficient"):
+                collect(root,fetch)
+            self.assertTrue((root/"coverage.json").exists())
+            self.assertTrue((root/"cache"/"DTWEXBGS.csv").exists())
+            self.assertFalse((root/"cache"/"DFII10.csv").exists())
+
+    def test_manual_and_wrong_vintage(self):
+        raw=self.full_csv("DFII10","alfred")
+        with self.assertRaises(ValueError):
+            parse(raw,"DFII10")
+        with self.assertRaises(ValueError):
+            parse(raw.replace(b"20261125",b"20261124"),"DFII10","alfred")
+        with TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            manual=root/"manual"/"DFII10.csv"
+            manual.parent.mkdir()
+            manual.write_bytes(self.full_csv("DFII10"))
+            value,meta=obtain(root,"DFII10",lambda u:self.fail(u))
+            self.assertEqual(value,manual.read_bytes())
+            self.assertTrue(meta["manual_import"])
+            self.assertIsNone(meta["retrieved_utc"])

@@ -89,3 +89,6 @@ ETF TFTC открывается в разделе История без ключ
 
 ### MACRO-001
 `update.bat` затем `run_macro_development.bat`. Два небольших публичных CSV FRED, прежние BTC USD snapshots; без ключей/новых зависимостей. Пришли data/research/macro_v1/macro_development_report.json (при ошибке coverage.json или текст). OI development завершён, не повторять. См. MACRO_PROTOCOL.md.
+
+
+MACRO timeout recovery: update.bat and rerun run_macro_development.bat. Automatically tries FRED/ALFRED and FRED once more, keeps successful cache. If all requests fail, coverage.json contains exact official CSV URLs; save CSV to data/research/macro_v1/manual/DFII10.csv or DTWEXBGS.csv (FRED), or DFII10_20261125.csv / DTWEXBGS_20261125.csv (ALFRED), then rerun. Don't rename a different series or edit values. Send coverage.json if unsuccessful.

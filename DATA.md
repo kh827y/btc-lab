@@ -101,3 +101,6 @@ OI first coverage 136/174, all rejected dates before 2021-05-28; prior failed co
 
 ### OI-001 / MACRO-001
 OI repaired coverage 173/174, only 2021-02-19 missing; 136 previously valid retained unchanged; 10365 duplicate rows, no conflicting OI timestamps in accepted archives. Snapshot c1d6295a30717177eacf981cb0f046d03003641638551700025a00085ab7b113. No fill. MACRO new public FRED CSV DFII10/DTWEXBGS 2019-02-04..2023-12-31, exact raw bytes/hash/source/retrieval, weekday coverage by year, bounded holiday lookup. H.10 weekly publication and 2019 methodology change documented in MACRO_PROTOCOL.md. Historical vintage not established, no claims of original availability; if candidate, ALFRED check. Coverage yet unverified.
+
+
+MACRO acquisition retry: FRED primary, same-series ALFRED fixed 2026-11-25 vintage, one FRED retry. Source/header/hash/retrieval recorded; manual imports marked unverified, no claimed download timestamp. Coverage gate unchanged. No source substitutions; late vintage only, not PIT.

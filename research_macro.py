@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import math
+import time
 from datetime import date,datetime,timezone
 from pathlib import Path
 from urllib.parse import urlencode
@@ -20,6 +21,7 @@ START=date(2019,2,4)
 EVAL_START=date(2020,7,6)
 SERIES=("DFII10","DTWEXBGS")
 VERSION="MACRO-001-development-v1"
+FALLBACK_VINTAGE=date(2026,11,25)
 MODELS={"L1":[0],"L1_yield":[0,4],"L1_usd":[0,5],"L1_macro":[0,4,5],
         "M2":[0,1,2,3],"M2_macro":[0,1,2,3,4,5]}
 PAIRS=(("L1_macro","L1"),("L1_yield","L1"),("L1_usd","L1"),("M2_macro","M2"),
@@ -33,21 +35,30 @@ def url(series):
         "id":series,"cosd":START.isoformat(),"coed":(DEV_END-DAY).isoformat()})
 
 
+def alternate_url(series):
+    if series not in SERIES:
+        raise ValueError("Unknown macro series")
+    return "https://alfred.stlouisfed.org/graph/alfredgraph.csv?"+urlencode({
+        "id":series,"vintage_date":FALLBACK_VINTAGE.isoformat(),
+        "cosd":START.isoformat(),"coed":(DEV_END-DAY).isoformat()})
+
+
 def download(address,limit=1024*1024):
-    with urlopen(Request(address,headers={"User-Agent":"BTC-Lab research","Accept":"text/csv"}),timeout=60) as r:
+    with urlopen(Request(address,headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)","Accept":"text/csv, */*;q=0.5"}),timeout=30) as r:
         raw=r.read(limit+1)
     if len(raw)>limit:
         raise ValueError("Macro CSV exceeds limit")
     return raw
 
 
-def parse(raw,series):
+def parse(raw,series,source="fred"):
     if series not in SERIES:
         raise ValueError("Unknown macro series")
     reader=csv.reader(io.StringIO(raw.decode("utf-8-sig")))
     header=next(reader,None)
-    if header not in (["observation_date",series],["DATE",series]):
-        raise ValueError("Unexpected FRED header: "+str(header))
+    column=series if source=="fred" else series+"_"+FALLBACK_VINTAGE.strftime("%Y%m%d")
+    if source not in ("fred","alfred") or header not in (["observation_date",column],["DATE",column]):
+        raise ValueError("Unexpected FRED/ALFRED header: "+str(header))
     values={};missing=[];seen=set();last=None
     for row in reader:
         if len(row)!=2:
@@ -79,28 +90,71 @@ def parse(raw,series):
     return values,info
 
 
+def obtain(root,s,fetcher):
+    errors=[]
+    # Manual import only from an explicitly named official CSV, never from an
+    # unlabelled file. Keep the original bytes; manual provenance is asserted,
+    # not independently verified.
+    for source, address, filename in (
+            ("fred",url(s),s+".csv"),
+            ("alfred",alternate_url(s),s+"_"+FALLBACK_VINTAGE.strftime("%Y%m%d")+".csv")):
+        manual=root/"manual"/filename
+        if manual.exists():
+            raw=manual.read_bytes()
+            if len(raw)>1024*1024:
+                raise ValueError("Manual CSV exceeds limit")
+            _,q=parse(raw,s,source)
+            if not q["coverage_gate"]:
+                raise ValueError("Manual CSV coverage insufficient: "+filename)
+            return raw,{"url":address,"source":source,"sha256":digest(raw),
+                        "retrieved_utc":None,"imported_utc":datetime.now(timezone.utc).isoformat(),
+                        "manual_import":True,"manual_filename":filename,"failed_attempts":errors}
+    for source,address in (("fred",url(s)),("alfred",alternate_url(s)),("fred",url(s))):
+        print("Download",s,source,flush=True)
+        try:
+            raw=fetcher(address)
+            if len(raw)>1024*1024:
+                raise ValueError("Macro CSV exceeds limit")
+            _,q=parse(raw,s,source)
+            if not q["coverage_gate"]:
+                raise ValueError("Insufficient weekday coverage")
+            return raw,{"url":address,"source":source,"sha256":digest(raw),
+                        "retrieved_utc":datetime.now(timezone.utc).isoformat(),
+                        "manual_import":False,"failed_attempts":errors}
+        except (OSError,ValueError) as e:
+            errors.append({"source":source,"url":address,"error":str(e)})
+            print("Unavailable",s,source,str(e),flush=True)
+            time.sleep(1)
+    return None,{"errors":errors,"coverage_gate":False,
+                 "manual_urls":{"fred":url(s),"alfred":alternate_url(s)}}
+
+
 def collect(root=ROOT,fetcher=download):
     root=Path(root);data={};quality={}
     for s in SERIES:
         path=root/"cache"/(s+".csv")
         meta=path.with_suffix(".json")
-        address=url(s)
         if path.exists() and meta.exists():
             raw=path.read_bytes();info=json.loads(meta.read_bytes())
-            if info["url"]!=address or info["sha256"]!=digest(raw):
+            source=info.get("source","fred")
+            allowed={"fred":url(s),"alfred":alternate_url(s)}
+            if info["url"]!=allowed.get(source) or info["sha256"]!=digest(raw):
                 raise ValueError("Cached FRED data changed")
         elif path.exists() or meta.exists():
             raise ValueError("Incomplete macro cache pair: "+s)
         else:
-            print("Download",s,flush=True)
-            raw=fetcher(address)
-            parse(raw,s)
-            info={"url":address,"sha256":digest(raw),"retrieved_utc":datetime.now(timezone.utc).isoformat()}
+            raw,info=obtain(root,s,fetcher)
+            if raw is None:
+                quality[s]=info
+                continue
             atomic_write(path,raw);json_write(meta,info)
-        data[s],q=parse(raw,s)
+        data[s],q=parse(raw,s,info.get("source","fred"))
         quality[s]={**info,**q}
     json_write(root/"coverage.json",quality)
     if not all(q["coverage_gate"] for q in quality.values()):
+        print("If automatic downloads failed, use the official CSV links in coverage.json.",flush=True)
+        print("Save the CSVs under",root/"manual",flush=True)
+        print("Names: DFII10.csv / DTWEXBGS.csv (FRED); or DFII10_20261125.csv / DTWEXBGS_20261125.csv (ALFRED).",flush=True)
         raise ValueError("Macro coverage insufficient; send coverage.json")
     return data,quality
 
