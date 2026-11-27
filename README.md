@@ -188,3 +188,6 @@ update.bat, run_trend_recovery.bat. Пришли data/research/trend_recovery_v1
 
 ### DELEVER-001: резкие падения и сокращение OI
 После `update.bat` запусти `run_delever_preflight.bat` и пришли `data/research/derivative_source_v1/delever_preflight.json`. Используются готовые локальные файлы, без интернета и ключей. Только фиксированные эпизоды и их сопоставимость; будущие доходности не считаются. Отдельное разрешение после проверки, см. DELEVER_PROTOCOL.md. Выпуск BUY/RISK имеет приоритет.
+
+### DELEVER-001: расчёт после рассмотренного preflight
+После `update.bat` запусти `run_delever_outcomes.bat`. Разрешён только рассмотренный preflight с закреплённым SHA-256; программа повторно сверяет календарь, эпизоды и исходные хэши. Отправь `data/research/derivative_source_v1/delever_outcomes.json`. Интернет и ключи не нужны. Повторный запуск не перезаписывает отчёт. Это описательное сравнение стоимости ожидания и риска, не торговое правило.
