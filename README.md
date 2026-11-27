@@ -95,3 +95,5 @@ MACRO timeout recovery: update.bat and rerun run_macro_development.bat. Automati
 
 ### COMB-001
 `update.bat`, `run_comb_development.bat`, send data/research/comb_v1/comb_development_report.json. Uses existing MVRV/OI/funding snapshots and pinned daily USD prices. No new downloads or keys. Development only, post-selection exploratory; see COMB_PROTOCOL.md. MACRO finished, no rerun.
+
+**COMB-001 development завершён.** Результат в ROADMAP.md. Не повторять расчёт и не подбирать параметры. Сохранить исходные snapshots и report. На данном этапе нужен независимый аудит исследовательской программы, а не очередная выгрузка. Журнал BUY по-прежнему отдельный перспективный эксперимент.
