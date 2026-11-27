@@ -77,3 +77,5 @@ research_daily_usd.py — отдельный фиксированный сним
 research_buy.py — development-only BUY-001. Проверяет хэши полных CSV, парсит цены только до 2024, вычисляет недельные point-in-time состояния/риски и одинаковые симуляции покупки. BUY_PROTOCOL.md содержит точные правила. Локальный buy_development_report.json, без test CSV, платных вызовов или новых зависимостей. Не менять CPI и журнал.
 
 research_buy_risk.py — отдельное development расширение BUY-001, fixed ridge logistic L1/M2, matched rolling evaluation, калибровка, условные парные блоки, одинаковые правила распределения капитала и контроль фиксированной отсрочки, cash sensitivity. Использует load_development и simulate исходного модуля, не меняет исходные результаты, не открывает финальные цены.
+
+research_buy_audit.py — development-only post-audit controls; reuse original replay/simulate, assert previous sample and BTC gain, exact allocation-schedule rotations and model pair deltas, 52-week conditional intervals primary. Raw data unchanged, new local report only. No final guard bypass, journal v1 unchanged.
