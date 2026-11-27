@@ -230,7 +230,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--live-smoke",action="store_true",required=True)
     p.add_argument("--budget-units",type=int,default=DEFAULT_BUDGET)
-    p.add_argument("--replace-key",action="store_true",help="Replace the saved Windows credential")
+    p.add_argument("--replace-key",action="store_true",help="Replace the saved local key")
     a=p.parse_args()
     if not 0<a.budget_units<=MAX_BUDGET:
         p.error("Budget must be 1..500000 estimated base units")

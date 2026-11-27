@@ -1,8 +1,10 @@
 import unittest
 from unittest.mock import patch
 import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from research_credentials import approve,get_key,valid_key,CredentialError,WindowsVault
+from research_credentials import approve,get_key,valid_key,CredentialError,ProjectVault
 import research_provider
 import research_metadata
 
@@ -49,10 +51,34 @@ class CredentialTest(unittest.TestCase):
                 get_key(vault=v,prompt=lambda:key,notify=lambda _:None)
             self.assertEqual(v.writes,0)
 
-    def test_nonwindows_no_plaintext_fallback(self):
-        with patch("research_credentials.sys.platform","linux"):
+    def test_project_storage_and_delete(self):
+        with TemporaryDirectory() as tmp:
+            v=ProjectVault(Path(tmp))
+            self.assertIsNone(v.read())
+            v.write("fake-key")
+            self.assertEqual(v.read(),"fake-key")
+            self.assertEqual(v.path.read_bytes(),b"fake-key\n")
+            v.write("replacement")
+            self.assertEqual(v.read(),"replacement")
+            self.assertTrue(v.delete())
+            self.assertFalse(v.delete())
+            self.assertIsNone(v.read())
+
+    def test_redirected_key_rejected(self):
+        with TemporaryDirectory() as tmp:
+            v=ProjectVault(Path(tmp))
+            v.path.parent.mkdir()
+            outside=Path(tmp)/"other"
+            outside.write_text("secret")
+            try:
+                v.path.symlink_to(outside)
+            except OSError:
+                self.skipTest("Symlinks unavailable")
             with self.assertRaises(CredentialError):
-                WindowsVault()
+                v.read()
+            with self.assertRaises(CredentialError):
+                v.write("fake-key")
+            self.assertEqual(outside.read_text(),"secret")
 
     def test_decline_never_reads_credential(self):
         for module,flag in ((research_provider,"--live-smoke"),(research_metadata,"--live-review")):

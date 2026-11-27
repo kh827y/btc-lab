@@ -131,3 +131,6 @@ DVOL completed. After update.bat, from the project folder use `.venv\Scripts\pyt
 `update.bat`, `run_agent_review.bat`. Сначала показывается точный ограниченный снимок данных, затем y для разрешения передачи и платного запуска; ключ вводится скрыто. Без согласия сеть не используется. Прислать JSON из `data/research/agent_review/` и списание. Только статусы/итоги GATE/целостность без хешей/счётчики журналов. Без файлов, терминала, прогнозов и новых исследований. Для просмотра без оплаты: `.venv\Scripts\python.exe research_metadata.py --preview`. См. AGENT_CONTROLLER.md.
 
 Подтверждение `y`; первый ввод ключа сохраняется в диспетчере учётных данных Windows. Следующие запуски используют сохранённый ключ. Удалить: `.venv\Scripts\python.exe research_credentials.py --forget`. Заменить: `.venv\Scripts\python.exe research_metadata.py --live-review --replace-key`. Повторять metadata pilot не нужно.
+
+### Актуально: локальный ключ и черновик OI-протокола
+Вместо Windows Credential Manager используется `data/.cheapvibecode_key` (открытый текст, игнорируется Git). `update.bat`, `run_agent_protocol.bat`, `y`, при первом запуске ключ. Пришли JSON из `data/research/agent_protocol/`. Не отправляй файл ключа. Резерв 300000, не гарантированный расход. Только проект протокола, без запуска исследования. `--preview` без сети.

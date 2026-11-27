@@ -129,7 +129,7 @@ def main():
     modes.add_argument("--preview",action="store_true")
     modes.add_argument("--live-review",action="store_true")
     p.add_argument("--budget-units",type=int,default=DEFAULT_BUDGET)
-    p.add_argument("--replace-key",action="store_true",help="Replace the saved Windows credential")
+    p.add_argument("--replace-key",action="store_true",help="Replace the saved local key")
     a=p.parse_args()
     if not 0<a.budget_units<=MAX_BUDGET:
         p.error("Budget must be 1..500000 estimated base units")

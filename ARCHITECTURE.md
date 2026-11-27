@@ -117,3 +117,5 @@ research_provider.py — separate owner-launched synthetic-only CheapVibeCode tr
 research_metadata.py — fixed local projection and preview before explicit paid consent; frozen in-memory tool results, no model-directed filesystem access, limited enumerated fields only. Separate real-metadata pilot reuses controller/provider. No raw outcomes, paths, receipts or hashes exported; no execution or new research authorization.
 
 research_credentials.py — host-only Windows Credential Manager adapter; no plaintext fallback or model access. Paid confirmation before retrieval; fixed credential target, replace/delete support. No keys in Git/report. Not a defense against malicious same-user processes.
+
+research_credentials.py now uses a project-local ignored plaintext key file instead of Windows Credential Manager. research_protocol_design.py — fixed OI protocol proposal, curated static evidence, three model calls, zero tools, strict schema, advisory only; no execution or registration.
