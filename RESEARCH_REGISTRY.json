@@ -66,7 +66,7 @@
       {
         "id": "GATE-001",
         "kind": "synthetic_diagnostic",
-        "status": "registered_pending_run",
+        "status": "closed_not_passed",
         "decision_id": "D3",
         "protocol_files": [
           "GATE_PROTOCOL.md"
@@ -86,6 +86,92 @@
           "86/150 nested lengths"
         ],
         "stopping_rule": "One run; no parameter or seed tuning; does not authorize real-market confirmation",
+        "attempts": [
+          {
+            "status": "completed_not_passed",
+            "code_commit": "80fb76b5d848dc7e50ee03c2e69291b4f73ad712",
+            "ci_run": 46033158726,
+            "report_sha256": "e921fa2902c16af73f7eabed8cc520528e8e57490bd4d1964a44997f59a7d452",
+            "result": {
+              "sizes": [
+                86,
+                150
+              ],
+              "null_detected": [
+                4,
+                0
+              ],
+              "moderate_detected": [
+                37,
+                40
+              ],
+              "strong_detected": [
+                102,
+                111
+              ],
+              "histories_per_scenario": 128,
+              "threshold": [
+                0.01,
+                0.01
+              ],
+              "moderate_oracle_expected_gain": [
+                0.008833358884426216,
+                0.008910383114429857
+              ],
+              "moderate_mean_gain": [
+                0.006432898417355693,
+                0.006456803034719832
+              ],
+              "point_pass": [
+                false,
+                false
+              ],
+              "uncertainty_pass": [
+                false,
+                false
+              ]
+            },
+            "interpretation": "Moderate oracle gain below predeclared practical threshold; cannot establish adequate power, not evidence of no factor effect. Null detection low; strong effect sensitivity much higher. Preserve original threshold; no rerun or seed selection. Still no permission for real-data confirmation."
+          }
+        ]
+      },
+      {
+        "id": "RISK-001",
+        "kind": "descriptive_calibration_diagnostic",
+        "status": "registered_pending_run",
+        "decision_id": [
+          "D2",
+          "D3"
+        ],
+        "protocol_files": [
+          "RISK_REFERENCE_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_risk_reference.py"
+        ],
+        "local_reports": [
+          "data/research/risk_reference_v1/risk_reference_report.json"
+        ],
+        "primary_comparison": null,
+        "baseline": [
+          "empirical_expanding",
+          "empirical_104",
+          "scaled_expanding",
+          "scaled_104",
+          "EWMA_variance"
+        ],
+        "target_and_horizon": "7/28/90d log return, worst decline from entry, daily variance, binary up/loss15",
+        "evaluation_window": "2018-01-01..completed outcomes before 2024-01-01; common training origins from 2016-07-04",
+        "synthetic_gate_spec_and_result": "GATE-001 failed; descriptive audit only, no new confirmation allowed",
+        "secondary_comparisons": [
+          "CRPS and pinball for return/worst",
+          "Brier and fixed reliability bins",
+          "quantile calibration and central80 coverage",
+          "QLIKE",
+          "year and exchange descriptive breakdown"
+        ],
+        "stopping_rule": "One report, no model selection or tuning, no 2024+ data",
+        "code_and_data_versions": "RISK-001-reference-diagnostic-v1, pinned BUY CSVs",
         "attempts": []
       }
     ]

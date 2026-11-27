@@ -101,3 +101,5 @@ RESEARCH_REGISTRY.json — machine-readable retrospective study-family inventory
 research_drawdown.py — descriptive DD-001, shared pinned BUY loader/outcomes, observed closing peak and episode inventory, fixed depth groups, censored recovery and illustrative static exposure. No network, no forecast fit or decision confirmation. Separate local report; no frozen files changed.
 
 research_gate.py — isolated synthetic risk-method diagnostic, known regime/latent feature process and exact oracles, numerical batched legacy logistic with parity test, independent null calibration/validation and fixed effects. No arbitrary code or external agents, no market input. Study-specific gate still required.
+
+research_risk_reference.py — descriptive price-only forecast calibration diagnostic, fixed expanding/rolling empirical and volatility-scaled distributions, EWMA variance reference, common BUY price reader/state/outcome, exact empirical CRPS and reliability bins. No fitted factors, post-2023 numeric prices or market confirmation. No network or paid calls.

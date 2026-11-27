@@ -106,3 +106,6 @@ MACRO timeout recovery: update.bat and rerun run_macro_development.bat. Automati
 
 ### GATE-001
 DD completed. `update.bat`, `run_synthetic_gate.bat`, send `data/research/gate_v1/synthetic_gate_report.json`. Synthetic only; no data/API keys; calculation may be slower than descriptive reports. No new real-market study authorized by this diagnostic. See GATE_PROTOCOL.md.
+
+### RISK-001
+GATE-001 did not pass; preserve report, do not rerun. `update.bat`, `run_risk_reference.bat`, send `data/research/risk_reference_v1/risk_reference_report.json`. Existing price snapshots only. Descriptive calibration on development history, no new confirmation or trade rules. See RISK_REFERENCE_PROTOCOL.md.
