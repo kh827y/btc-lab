@@ -1,4 +1,4 @@
-"""Offline presentation of saved weekly risk forecasts and DD-001; no new forecasts."""
+"""Weekly presentation of saved RISK and DD-001 with separate DVOL context."""
 import json
 import math
 from pathlib import Path
@@ -8,6 +8,7 @@ from buy_journal import live_prices,origin_for,utcnow,SNAPSHOT,REPO
 from risk_journal import ROOT as RISK_ROOT,VERSION as RISK_VERSION
 from research_buy import DAY,HASHES,window
 from research_drawdown import group,ROOT as DD_ROOT
+from research_dvol_context import snapshot as dvol_snapshot, describe as dvol_describe
 
 ROOT=REPO/"data"/"research"/"decision_sheet"
 DD_SHA="759bd8e43ef8644f0af875becb68c476882f7f465b21a094eee47da2026aa133"
@@ -71,7 +72,7 @@ def historical_range(h,key):
     return " / ".join(f"{q[str(i)]:+.1f}%" for i in (10,50,90))
 
 
-def render(f,dd,c,forecast_sha,dd_sha):
+def render(f,dd,c,forecast_sha,dd_sha,dvol=None):
     if not math.isclose(c["close"],f["state"]["close"],rel_tol=1e-12):
         raise ValueError("Risk forecast close mismatch")
     market=dd["markets"]["bitstamp"]
@@ -106,7 +107,8 @@ def render(f,dd,c,forecast_sha,dd_sha):
             lines.append(f"| {h} | {label} | {m['n_train']} | {risk_range(m,'return_log_quantiles')} | {risk_range(m,'worst_log_quantiles')} | {100*p:.1f}% |")
     lines+=["","## 3. Как читать",
         "P10/P50/P90 — нижний дециль, медиана и верхний дециль. Худшее снижение относится к цене входа, не к пику после покупки. Исторические частоты и диапазоны не доказывают будущую точность.",
-        "DVOL: свежий снимок пока не подключён; историческое значение не выдаётся за текущее. OI собирается отдельно, без прогнозного веса.",
+        (dvol_describe(dvol) if dvol is not None else "DVOL: свежий снимок недоступен; историческое значение не выдаётся за текущее."),
+        "OI собирается отдельно, без прогнозного веса.",
         "Покупать сейчас, ждать или делить сумму — решение владельца. Для персонального размера покупки нужен допустимый риск и цена упущенного роста; они не заданы.",
         "",f"Источники: RISK forecast SHA256 {forecast_sha}; DD-001 SHA256 {dd_sha}. Хэш не доказывает истинность выводов. Статус внешней квитанции прогноза проверяется отдельно.",
         "Таблица не является новым прогнозом и не изменяет журнал."]
@@ -127,8 +129,16 @@ def run(root=ROOT,risk_root=RISK_ROOT,dd_root=DD_ROOT,snapshot=SNAPSHOT,clock=ut
     if dd["protocol"]!="DD-001-descriptive-v1" or dd["price_hashes"]!=HASHES or dd["test_numeric_values_parsed"] is not False:
         raise ValueError("Invalid drawdown source")
     c=context(saved_prices(src,t,snapshot),t)
-    report=render(f,dd,c,sha,dd_sha)
     target=Path(root)/t.isoformat()/"decision_sheet.md"
+    if target.exists():
+        print("Decision sheet already saved:",target)
+        return target
+    try:
+        dvol=dvol_snapshot(t-2*DAY,clock=clock)
+    except (OSError,ValueError,KeyError,TypeError,OverflowError) as exc:
+        print("DVOL unavailable:",str(exc)[:300],flush=True)
+        dvol=None
+    report=render(f,dd,c,sha,dd_sha,dvol)
     target.parent.mkdir(parents=True,exist_ok=True)
     try:
         with target.open("x",encoding="utf-8",newline="\n") as out:
