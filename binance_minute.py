@@ -19,7 +19,7 @@ FIRST = date(2017, 8, 17)
 MINUTE = 60_000
 MAX_BYTES = 32 * 1024 * 1024
 MAX_CSV = 32 * 1024 * 1024
-SCHEMA = 1
+SCHEMA = 2
 
 
 def ms(day):
@@ -72,10 +72,12 @@ def expected_hash(raw, name):
     return fields[0].lower()
 
 
-def iter_klines(raw, label, start, stop):
+def iter_klines(raw, label, start, stop, rejected=None):
     """Yield 12 original fields, times normalized to integer UTC milliseconds.
-    Reject an entire archive on malformed, duplicate or out-of-order rows.
-    Missing minutes are allowed and counted separately; never synthesized.
+    Quarantine rows with nonstandard time boundaries, without shifting them.
+    Reject the archive on ambiguous dates/order or malformed numeric fields.
+    Missing minutes are counted separately; never synthesized. An optional
+    rejected list receives the original open/close timestamps and reason.
     """
     name = filename(label).replace(".zip", ".csv")
     lo, hi = ms(start), ms(stop)
@@ -89,15 +91,27 @@ def iter_klines(raw, label, start, stop):
                 if len(row) != 12:
                     raise ValueError("Invalid kline column count")
                 try:
-                    t, close = int(row[0]), int(row[6])
-                    if t >= 10**14 or close >= 10**14:
-                        if not (t >= 10**14 and close >= 10**14 and t % 1000 == 0 and close % 1000 == 999):
-                            raise ValueError("Invalid microsecond boundary")
-                        t, close = t // 1000, close // 1000
-                    if not (lo <= t < hi and t % MINUTE == 0 and close == t + MINUTE - 1):
-                        raise ValueError("Invalid minute boundary or date")
-                    if previous is not None and t <= previous:
+                    raw_t, raw_close = int(row[0]), int(row[6])
+                    micro = raw_t >= 10**14
+                    order_t = raw_t if micro else raw_t * 1000
+                    if not lo * 1000 <= order_t < hi * 1000:
+                        raise ValueError("Open time outside archive range")
+                    if previous is not None and order_t <= previous:
                         raise ValueError("Duplicate or unordered minute")
+                    previous = order_t
+                    t, close = raw_t, raw_close
+                    reason = None
+                    if micro or raw_close >= 10**14:
+                        if not (micro and raw_close >= 10**14 and raw_t % 1000 == 0 and raw_close % 1000 == 999):
+                            reason = "Invalid microsecond boundary"
+                        else:
+                            t, close = raw_t // 1000, raw_close // 1000
+                    if reason is None and (t % MINUTE or close != t + MINUTE - 1):
+                        reason = "Nonstandard minute boundary"
+                    if reason is not None:
+                        if rejected is not None:
+                            rejected.append({"open_raw": raw_t, "close_raw": raw_close, "reason": reason})
+                        continue
                     o, h, l, c, v, q, buy_v, buy_q = (Decimal(row[i]) for i in (1, 2, 3, 4, 5, 7, 9, 10))
                     trades = int(row[8])
                     if not all(x.is_finite() for x in (o,h,l,c,v,q,buy_v,buy_q)):
@@ -107,7 +121,6 @@ def iter_klines(raw, label, start, stop):
                         raise ValueError("Invalid OHLC/volume")
                 except (InvalidOperation, ValueError) as exc:
                     raise ValueError(f"Invalid Binance candle at {row[0]}: {exc}") from exc
-                previous = t
                 row[0], row[6] = str(t), str(close)
                 yield row
 
@@ -116,7 +129,8 @@ def inspect(raw, label, start, stop):
     cursor = ms(start)
     gaps = []
     count = 0
-    for row in iter_klines(raw, label, start, stop):
+    rejected = []
+    for row in iter_klines(raw, label, start, stop, rejected):
         t = int(row[0])
         if t > cursor:
             gaps.append([cursor, t])
@@ -128,7 +142,8 @@ def inspect(raw, label, start, stop):
         gaps.append([cursor, ms(stop)])
     missing = sum((b-a)//MINUTE for a,b in gaps)
     return {"rows": count, "expected": (ms(stop)-ms(start))//MINUTE,
-            "missing": missing, "gaps_utc_ms": gaps}
+            "missing": missing, "gaps_utc_ms": gaps,
+            "rejected_rows": len(rejected), "rejected_examples": rejected[:20]}
 
 
 def atomic_write(path, data):
@@ -151,7 +166,14 @@ def ensure_archive(root, kind, label, start, stop, fetcher=fetch, refresh=False)
     if not refresh and path.exists() and meta_path.exists():
         try:
             old = json.loads(meta_path.read_text(encoding="utf-8"))
-            if all(old.get(k) == v for k,v in identity.items()) and digest(path.read_bytes()) == old["sha256"]:
+            # Schema 1 accepted only strictly aligned rows, so verified old ZIPs
+            # are already safe. Do not redownload or reparse them.
+            if (old.get("schema") in (1, SCHEMA)
+                    and all(old.get(k) == v for k,v in identity.items() if k != "schema")
+                    and digest(path.read_bytes()) == old["sha256"]):
+                if old["schema"] == 1:
+                    old = {**old, "schema": SCHEMA, "rejected_rows": 0, "rejected_examples": []}
+                    json_write(meta_path, old)
                 return {**old, "cached": True}
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
             pass
@@ -186,7 +208,7 @@ def download(root, start, stop, fetcher=fetch, refresh=False):
                       "stop": b.isoformat(), "error": str(exc)}
         results.append(result)
         print(label, result.get("error") or
-              f"{result['rows']} rows, missing {result['missing']}, cached={result['cached']}", flush=True)
+              f"{result['rows']} rows, missing {result['missing']}, rejected {result['rejected_rows']}, cached={result['cached']}", flush=True)
         # Update checkpoint after every archive; a crash does not invalidate older ZIPs.
         json_write(root / "audit.json", {"schema": SCHEMA, "start": start.isoformat(),
                    "stop": stop.isoformat(), "complete_scan": False, "archives": results})
@@ -197,7 +219,9 @@ def download(root, start, stop, fetcher=fetch, refresh=False):
     expected = (ms(stop)-ms(start))//MINUTE
     report = {"schema": SCHEMA, "start": start.isoformat(), "stop": stop.isoformat(),
               "complete_scan": True, "archives": results, "errors": errors,
-              "rows": rows, "expected": expected, "missing_or_unavailable": expected-rows}
+              "rows": rows, "expected": expected, "missing_or_unavailable": expected-rows,
+              "rejected_rows": sum(x.get("rejected_rows",0) for x in results),
+              "missing_in_accepted_archives": sum(x.get("missing",0) for x in results)}
     json_write(root / "audit.json", report)
     print(f"Verified {rows}/{expected} minutes; {errors} failed archives. Audit: {root / 'audit.json'}", flush=True)
     return report

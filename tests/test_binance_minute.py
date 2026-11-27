@@ -42,11 +42,35 @@ class TestMinuteArchives(unittest.TestCase):
     def test_reject_duplicate_order_date_invalid_ohlc(self):
         t = ms(DAY)
         cases = [[candle(t),candle(t)], [candle(t+MINUTE),candle(t)],
-                 [candle(ms(NEXT))], [candle(t+1)], [candle(t).replace(",12,9,",",8,9,")],
+                 [candle(ms(NEXT))], [candle(t).replace(",12,9,",",8,9,")],
                  [candle(t).replace(",20,3,",",NaN,3,")]]
         for rows in cases:
             with self.subTest(rows=rows), self.assertRaises(ValueError):
                 inspect(archive(rows),LABEL,DAY,NEXT)
+
+    def test_quarantine_time_boundaries(self):
+        t = ms(DAY)
+        # Short candle, shifted candles, then valid aligned candle.
+        short = candle(t+MINUTE).replace(str(t+2*MINUTE-1), str(t+MINUTE+12345))
+        rows = [candle(t), short, candle(t+2*MINUTE+20000),
+                candle(t+3*MINUTE+20000), candle(t+4*MINUTE)]
+        raw = archive(rows)
+        rejected = []
+        kept = list(iter_klines(raw,LABEL,DAY,NEXT,rejected))
+        self.assertEqual([int(r[0]) for r in kept],[t,t+4*MINUTE])
+        self.assertEqual(len(rejected),3)
+        self.assertEqual(rejected[0]["close_raw"],t+MINUTE+12345)
+        report = inspect(raw,LABEL,DAY,NEXT)
+        self.assertEqual(report["rejected_rows"],3)
+        self.assertEqual(report["missing"],1438)
+        self.assertEqual(report["gaps_utc_ms"][0],[t+MINUTE,t+4*MINUTE])
+
+    def test_shifted_microsecond_and_duplicate(self):
+        t = ms(DAY)
+        raw = archive([candle(t),candle(t+MINUTE,True).replace(str((t+MINUTE)*1000),str((t+MINUTE)*1000+1)),candle(t+2*MINUTE)])
+        self.assertEqual(inspect(raw,LABEL,DAY,NEXT)["rejected_rows"],1)
+        with self.assertRaises(ValueError):
+            inspect(archive([candle(t),candle(t+MINUTE+20000),candle(t+MINUTE+20000)]),LABEL,DAY,NEXT)
 
     def test_checksum_and_cache(self):
         raw = archive([candle(ms(DAY))])
@@ -57,6 +81,18 @@ class TestMinuteArchives(unittest.TestCase):
             first = ensure_archive(root,"daily",LABEL,DAY,NEXT,fetcher)
             self.assertFalse(first["cached"])
             self.assertTrue(ensure_archive(root,"daily",LABEL,DAY,NEXT,fetcher)["cached"])
+            self.assertEqual(fetcher.call_count,2)
+            import json
+            meta_path = root/"daily"/filename(LABEL).replace(".zip",".json")
+            old = json.loads(meta_path.read_text())
+            old["schema"] = 1
+            old.pop("rejected_rows")
+            old.pop("rejected_examples")
+            meta_path.write_text(json.dumps(old))
+            upgraded = ensure_archive(root,"daily",LABEL,DAY,NEXT,fetcher)
+            self.assertTrue(upgraded["cached"])
+            self.assertEqual(upgraded["schema"],2)
+            self.assertEqual(upgraded["rejected_rows"],0)
             self.assertEqual(fetcher.call_count,2)
             with self.assertRaisesRegex(ValueError,"SHA-256"):
                 ensure_archive(root,"daily",LABEL,DAY,NEXT,Mock(side_effect=[check,b"bad"]),True)
