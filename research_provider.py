@@ -60,6 +60,17 @@ def payload(role,request,cap):
     return encode(body)
 
 
+def contains_credential(obj,key):
+    """Check decoded JSON as well as raw text; escaped credentials must not reach logs."""
+    if isinstance(obj,str):
+        return key in obj
+    if isinstance(obj,list):
+        return any(contains_credential(v,key) for v in obj)
+    if isinstance(obj,dict):
+        return any(key in k or contains_credential(v,key) for k,v in obj.items())
+    return False
+
+
 def integer(x):
     return type(x) is int and x>=0
 
@@ -160,7 +171,8 @@ class CheapTransport:
         content=msg.get("content")
         require(type(content) is str and bool(content.strip()),"Missing content")
         require(self._key not in content,"Credential appeared in response")
-        strict_object(content)
+        decoded=strict_object(content)
+        require(not contains_credential(decoded,self._key),"Credential appeared in decoded response")
         rec["status"]="response_received"
         return content
 
@@ -204,10 +216,10 @@ def smoke(transport):
     return {"synthetic_evidence_only":True,"result":result,"provider":transport.summary()}
 
 
-def save(report,root=REPORT_ROOT):
+def save(report,root=REPORT_ROOT,*,prefix="agent_smoke_"):
     root.mkdir(parents=True,exist_ok=True)
     stamp=datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
-    path=root/("agent_smoke_"+stamp+".json")
+    path=root/(prefix+stamp+".json")
     with path.open("x",encoding="utf-8") as f:
         json.dump(report,f,ensure_ascii=False,indent=2,allow_nan=False)
         f.write("\n")

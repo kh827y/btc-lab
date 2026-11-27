@@ -1,7 +1,7 @@
 import json
 import unittest
 from research_controller import ControllerError,STAGES
-from research_provider import CheapTransport,fixture_tool,smoke,ENDPOINT,MODELS,usage_from,units,estimated_debit
+from research_provider import CheapTransport,fixture_tool,smoke,ENDPOINT,MODELS,usage_from,units,estimated_debit,NoRedirect
 
 class Response:
     status=200
@@ -64,7 +64,7 @@ class ProviderTest(unittest.TestCase):
         self.assertTrue(t.stopped)
 
     def test_errors_stop_without_retry(self):
-        for kind in ("missing_usage","over_cap","truncated","wrong_model","redirect","network","key_echo"):
+        for kind in ("missing_usage","over_cap","truncated","wrong_model","redirect","network","key_echo","escaped_key_echo"):
             sent=[]
             def send(req,timeout):
                 sent.append(req)
@@ -82,6 +82,8 @@ class ProviderTest(unittest.TestCase):
                     raise OSError("secret")
                 elif kind=="key_echo":
                     x["choices"][0]["message"]["content"]='{"secret":"key-test"}'
+                elif kind=="escaped_key_echo":
+                    x["choices"][0]["message"]["content"]='{"secret":"\\u006bey-test"}'
                 return Response(x,"https://other.invalid/" if kind=="redirect" else ENDPOINT)
             t=CheapTransport("key-test",200000,send)
             with self.assertRaises(ControllerError):
@@ -90,6 +92,10 @@ class ProviderTest(unittest.TestCase):
             self.assertTrue(t.stopped)
             self.assertGreater(t.reserved,0)
             self.assertNotIn("key-test",json.dumps(t.summary()))
+
+    def test_redirect_handler_rejects(self):
+        with self.assertRaises(ControllerError):
+            NoRedirect().redirect_request(None,None,302,None,None,"https://other.invalid/")
 
     def test_usage_validation(self):
         for u in ({"prompt_tokens":1,"completion_tokens":2,"total_tokens":4},
