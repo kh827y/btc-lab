@@ -181,6 +181,33 @@
             "summary": "312/309/301 common forecasts 7/28/90d, no missing. Brier recomputed from all prediction rows. Longer history generally lower scores, short-term volatility scaling modestly helps downside, long-horizon scaling worsens return distribution. Calibration unstable by year. No selected winner or confirmation."
           }
         ]
+      },
+      {
+        "id": "DVOL-001",
+        "kind": "data_audit_and_descriptive_reference",
+        "status": "registered_pending_run",
+        "decision_id": "D3",
+        "protocol_files": [
+          "DVOL_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_dvol.py"
+        ],
+        "local_reports": [
+          "data/research/dvol_v1/dvol_report.json"
+        ],
+        "primary_comparison": null,
+        "baseline": "flat price EWMA variance",
+        "target_and_horizon": "30-day realized variance and annualized volatility",
+        "evaluation_window": "2021-04-01..2023-12-31, weekly Sunday complete outcomes",
+        "synthetic_gate_spec_and_result": "GATE-001 not passed; data audit and descriptive benchmark, no confirmation",
+        "secondary_comparisons": [
+          "QLIKE",
+          "volatility mean error and MAE",
+          "year and exchange"
+        ],
+        "stopping_rule": "Coverage gate first, no fit or selection, one report, no post-2023 numeric prices",
+        "attempts": []
       }
     ]
   },

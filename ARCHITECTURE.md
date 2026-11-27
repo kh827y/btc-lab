@@ -105,3 +105,5 @@ research_gate.py — isolated synthetic risk-method diagnostic, known regime/lat
 research_risk_reference.py — descriptive price-only forecast calibration diagnostic, fixed expanding/rolling empirical and volatility-scaled distributions, EWMA variance reference, common BUY price reader/state/outcome, exact empirical CRPS and reliability bins. No fitted factors, post-2023 numeric prices or market confirmation. No network or paid calls.
 
 risk_journal.py — separate prospective price-reference tracking, same live source and matured outcome/state functions, fixed expanding distributions with recorded empirical samples and independent receipt ledger, 7/28/90d settlement. No historical confirmation, trade rules or OI challenger. BUY journal unchanged. Manual anchor workflow, no external credentials.
+
+research_dvol.py — official public Deribit daily DVOL acquisition and coverage audit, cached raw pages and normalized snapshot; fixed descriptive comparison to 30-day realized variance and price EWMA, no model fit or new confirmation. Existing price loader/fetch helpers reused.

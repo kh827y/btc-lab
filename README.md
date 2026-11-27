@@ -112,3 +112,6 @@ GATE-001 did not pass; preserve report, do not rerun. `update.bat`, `run_risk_re
 
 ### RISK-journal-v1
 RISK-001 diagnostic completed. Sunday 29 Nov UTC: after update.bat run original run_buy_journal.bat (unchanged), then run_risk_journal.bat. Send both data/research/buy_journal/2026-11-30/forecast.json and data/research/risk_journal/2026-11-30/risk_forecast.json before Monday 00 UTC, separate receipt hashes. Keep source files locally. Later .venv\\Scripts\\python.exe risk_journal.py settle / status (separate commands). No backfill. No new factor confirmations.
+
+### DVOL-001
+`update.bat`, `run_dvol.bat`, send `data/research/dvol_v1/dvol_report.json` (or coverage.json on error). Small public Deribit daily archive, no API key, existing BTC/USD data. Data audit and descriptive benchmark only; see DVOL_PROTOCOL.md. Existing journal launch dates unchanged.
