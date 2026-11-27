@@ -21,7 +21,7 @@
       "code_and_data_versions"
     ],
     "comparison_budget": "At most one primary comparison per new confirmatory study and at most three such studies per calendar quarter by default; owner may explicitly revise before registration. All attempted runs and negative results retained.",
-    "gate": "No forecast/decision confirmation run without a predeclared planted-effect and null diagnostic. Gate failure blocks confirmation, not descriptive data audit. Synthetic success is not proof of market skill.",
+    "gate": "Current v3: no synthetic gate required for descriptive studies. Confirmatory work remains frozen unless separately approved with justified power/dependence design and strong references; no automatic authorization.",
     "new_studies": [
       {
         "id": "DD-001",
@@ -329,6 +329,37 @@
             "interpretation": "Primary 86 origins insufficient detection; 156 point estimate above 80% but Wilson lower 77.7%; 260 detection criteria pass for this fixed large oracle effect only. Baseline fails both simple references in null and planted for every size. The positive effect is substantially larger than .01 so not power for .01. No repeat or tuning, no real historical OI confirmation. Future independent review should assess practical alternative to repeated classifier/gate development."
           }
         ]
+      },
+      {
+        "id": "TREND-001",
+        "kind": "descriptive_episode_comparison",
+        "status": "registered_pending_run",
+        "decision_id": [
+          "D1",
+          "D3"
+        ],
+        "protocol_files": [
+          "TREND_RECOVERY_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_trend_recovery.py"
+        ],
+        "local_reports": [
+          "data/research/trend_recovery_v1/trend_recovery_report.json"
+        ],
+        "evaluation_window": "Common observed peak history 2015-07-20..2023-12-31",
+        "target_and_horizon": "First 20% closing drawdown per episode; common 90d budget comparison; separate 90d post-entry downside and new low",
+        "baseline": "Immediate next UTC open purchase; equal budget, cash included",
+        "primary_comparison": null,
+        "secondary_comparisons": [
+          "Wait for first close above MA50",
+          "Wait for first close above MA200",
+          "Coinbase cross-check"
+        ],
+        "synthetic_gate_spec_and_result": "Not applicable, descriptive only",
+        "stopping_rule": "One report, no overwrite or optimization, no 2024+ outcome data",
+        "code_and_data_versions": "TREND-001-descriptive-v1, pinned BUY CSV hashes",
+        "attempts": []
       }
     ]
   },

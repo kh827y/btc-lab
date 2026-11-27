@@ -150,3 +150,6 @@ OI-GATE-001 completed, failed overall at every sample size. Do not rerun. No add
 
 ### Текущий план: таблица решений
 После аудита Fable исторический OI закрыт; новых gate/платных запусков не нужно. В воскресенье update.bat, run_buy_journal.bat, run_risk_journal.bat как прежде. Последний дополнительно создаёт data/research/decision_sheet/<origin>/decision_sheet.md из существующих данных, без платного API. Пришли оба forecast JSON вовремя; OI report и decision_sheet.md если созданы. DVOL пока отдельно. Не откладывай отправку прогнозов из-за дополнительных таблиц.
+
+### TREND-001: подтверждение или покупка просадки
+update.bat, run_trend_recovery.bat. Пришли data/research/trend_recovery_v1/trend_recovery_report.json. Только прежние цены до 2024, без сети и платных моделей. Сравнение на одинаковом капитале и 90-дневном горизонте; отсутствие подтверждения означает кэш. Воскресние журналы без изменений.
