@@ -118,3 +118,6 @@ RISK-001 diagnostic completed. Sunday 29 Nov UTC: after update.bat run original 
 
 ### Bounded research tools (local, no AI)
 DVOL completed. After update.bat, from the project folder use `.venv\Scripts\python.exe research_tools.py registry`, `study DVOL-001`, `report_integrity DVOL-001`, or `journals` (same command prefix). All read-only. No new downloads or paid calls. No arbitrary file paths accepted. No autonomous agents yet. BUY/RISK Sunday issuance unchanged.
+
+### Агентный контроллер v1
+После update.bat: `.venv\Scripts\python.exe research_controller.py --dry-run`. Тестовые ответы, 4 локальные read-only операции, никакой сети или расходов. Реальные модели пока не подключены; см. AGENT_CONTROLLER.md.

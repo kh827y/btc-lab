@@ -109,3 +109,5 @@ risk_journal.py — separate prospective price-reference tracking, same live sou
 research_dvol.py — official public Deribit daily DVOL acquisition and coverage audit, cached raw pages and normalized snapshot; fixed descriptive comparison to 30-day realized variance and price EWMA, no model fit or new confirmation. Existing price loader/fetch helpers reused.
 
 research_tools.py — narrow local read-only dispatch, explicit operations/argument allowlist, fixed metadata and report paths, 24 KB output limit, bounded reads, journal receipt hash checks; no raw report contents, shell, network, writes, API calls or held-out outcome access. Host controls root/date, never expose those to model. Not a general filesystem sandbox or complete agent system.
+
+research_controller.py — host-side sequential three-call controller with strict JSON and explicit tool/evidence allowlist, bounded payloads, no retry, human review required. DryRunTransport is deterministic local stub only. No provider API, credentials, or execution capability. See AGENT_CONTROLLER.md.
