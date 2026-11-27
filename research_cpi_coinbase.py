@@ -29,8 +29,8 @@ def iso(t):
     return datetime.fromtimestamp(t/1000,tz=timezone.utc).isoformat().replace("+00:00","Z")
 
 
-def request_url(start, stop, step):
-    if step not in (MINUTE,DAY) or start%step or stop%step or not start<stop<=CUTOFF or (stop-start)//step>299:
+def request_url(start, stop, step, *, cutoff=CUTOFF):
+    if step not in (MINUTE,DAY) or start%step or stop%step or not start<stop<=cutoff or (stop-start)//step>299:
         raise ValueError("Invalid or final-period candle request")
     return API+"?"+urlencode({"start":iso(start),"end":iso(stop),"granularity":step//1000})
 
@@ -81,13 +81,14 @@ def fetch(url):
 
 
 class CandleCache:
-    def __init__(self, root, fetcher=fetch):
+    def __init__(self, root, fetcher=fetch, *, cutoff=CUTOFF):
+        self.cutoff=cutoff
         self.root=Path(root)
         self.fetcher=fetcher
         self.used={}
 
     def get(self,start,stop,step):
-        url=request_url(start,stop,step)
+        url=request_url(start,stop,step,cutoff=self.cutoff)
         key=digest(url.encode())
         p=self.root/(key+".json")
         if p.exists():
@@ -108,9 +109,9 @@ class CandleCache:
         return data
 
 
-def independent_event(e, cache):
+def independent_event(e, cache, *, cutoff=CUTOFF):
     t=e["entry"]-31*MINUTE
-    if e["exit"]!=e["entry"]+7*DAY or e["exit"]+MINUTE>CUTOFF:
+    if e["exit"]!=e["entry"]+7*DAY or e["exit"]+MINUTE>cutoff:
         raise ValueError("Unexpected event or final-period request")
     midnight=t//DAY*DAY
     daily=cache.get(midnight-29*DAY,midnight,DAY)

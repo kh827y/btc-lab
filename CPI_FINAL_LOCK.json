@@ -1,0 +1,16 @@
+{
+  "protocol": "CPI-001-final-v1",
+  "price_snapshot_sha256": "c306087ece415f6473d4c93adf762ebcd2ae4abe7afd48d5c56cb6bcce2b04fb",
+  "cpi_sha256": "9ab73661f0542e797c4163717e9ec4ed5aca6a5c286b3d97308255e3b6264653",
+  "blobs": {
+    "CPI_FINAL.md": "207e8bcd39491ab47c9074cf79e82b60f3117287",
+    "research_cpi_final.py": "31488bece361c250605b404471bcb53c24cbd39c",
+    "research_cpi.py": "9ceb1551c7a7dc42483e39972b0c47be964933ab",
+    "research_prices.py": "68a5e7ebf09bd47100f538cc4ed537aa53aa13b2",
+    "binance_minute.py": "300e030bc26c221da36eeb8f03c71481d622c844",
+    "research_cpi_development.py": "a7282d82ff64b3f7d8173e7928e50edc3aba3b97",
+    "research_cpi_diagnostics.py": "4369ad2e581f5d8ce17f3ba8e59263d2576f3029",
+    "research_cpi_coinbase.py": "64ea85fc68dfa43267ebb130dbfb934a1675bb3e",
+    "requirements.txt": "fc1787be12b94f2fc72bf6de2936075eb575ecac"
+  }
+}
