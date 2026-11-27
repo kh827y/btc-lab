@@ -50,8 +50,8 @@ class FlowTest(unittest.TestCase):
 
     def test_future_independence(self):
         end=T+100*DAY
-        prices={START+i*DAY:(100.,110.,90.,105.,1.) for i in range((end-START).days)}
-        flow={d:(100.,60.) for d in prices}
+        prices={START+i*DAY:(100.,110.,90.,105.,1.) for i in range(-200,(end-START).days)}
+        flow={d:(100.,60.) for d in prices if d>=START}
         a,_=replay(prices,flow,end)
         cut=T+21*DAY
         f={d:(v if d<cut else (100.,0.)) for d,v in flow.items()}

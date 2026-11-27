@@ -77,3 +77,6 @@ ETF TFTC открывается в разделе История без ключ
 
 ### FLOW-001 development
 `update.bat` затем `run_flow_development.bat`. Скачивает только несколько страниц дневной истории Binance до 2024, использует существующие USD CSV и прежние функции BUY. Прислать `data/research/flow_v1/flow_development_report.json` (при ошибке покрытия — coverage.json). Никаких ключей, новых зависимостей или повторной загрузки BTC history. См. FLOW_PROTOCOL.md. Отчёт не перезаписывается; исходные BUY/CPI не менять.
+
+### VALUE-001
+`update.bat`, затем `run_value_development.bat`. Использует data/extended/kote-mvrv.json и имеющиеся USD CSV; без API ключей, без загрузки или изменений исходных архивов. Пришли data/research/value_v1/value_development_report.json, при проблеме покрытия coverage.json; если отсутствует Kote файл — текст ошибки. FLOW-001 завершён development, не повторять. См. VALUE_PROTOCOL.md.

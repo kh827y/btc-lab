@@ -85,3 +85,5 @@ buy_journal.py — BUY-compatible prospective journal, shared build_signals from
 research_buy_final.py — отдельный gated historical evaluator, BUY_FINAL_LOCK.json pins committed protocol, code, input CSV hashes and three prior reports; shared forecast/simulation helpers, no change to development cutoffs, local immutable final report. No new dependencies or calls to market API/LLM. BUY journal separate.
 
 research_flow.py — изолированный development-only FLOW-001, фиксированные daily Binance public pages, нормированный taker flow, shared BUY features/logistic/outcome/interval, paired forecast comparison. Кэш и report under data/research/flow_v1. Нет доступа к 2024+ numeric values, не меняет BUY/CPI locks или dashboard.
+
+research_value.py — development-only valuation reconstruction, local Kote MVRV, pinned prefix snapshot, 28/90d matched probability comparisons and descriptive valuation bands, 3/8-day offsets. Reuses BUY features/labels/logistic/interval, no frozen files changed, no new credentials/network. Historical vintages not proven.

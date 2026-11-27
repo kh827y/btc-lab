@@ -86,3 +86,6 @@ Bitstamp 4713/4713, Coinbase 4148/4148, до 26.11.2026 включительно
 
 ### FLOW-001: данные
 Binance public BTCUSDT spot klines: quote asset volume и taker buy quote asset volume, закрытые дни UTC 2017-08-17..2023-12-31. Кэш канонического JSON rows (не байты оригинального HTTP), запрос/хэш/retrieval UTC. Суммарный семидневный дисбаланс нормируется на общий оборот. Старый binance-spot.json содержит net и close, не denominator; поэтому новый небольшой fixed snapshot вместо повторной minute download. Покрытие ещё предстоит проверить локально. Не смешивать с мультибиржевым CVD, не считать proof of initial availability. Исходы из прежних pinned Bitstamp/Coinbase CSV, только development.
+
+### FLOW-001 / VALUE-001
+FLOW daily snapshot 2327/2328, malformed 2018-02-08; all 256 evaluation origins per market. Kote mvrv local archive (prior 5076 valid values, actual development coverage still to verify). VALUE-001 preserves prefix snapshot and hashes, no redistribution, no credential access. Kote methodology/docs describe daily valuations after UTC midnight; historical publication/revisions unverified, exact 3/8-day date offsets are assumptions. No live point-in-time claim.
