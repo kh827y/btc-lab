@@ -81,3 +81,5 @@ research_buy_risk.py — отдельное development расширение BUY
 research_buy_audit.py — development-only post-audit controls; reuse original replay/simulate, assert previous sample and BTC gain, exact allocation-schedule rotations and model pair deltas, 52-week conditional intervals primary. Raw data unchanged, new local report only. No final guard bypass, journal v1 unchanged.
 
 buy_journal.py — BUY-compatible prospective journal, shared build_signals from research_buy and research_buy_risk, pinned Bitstamp + closed live candles, separate source/forecast and outcomes, tracked hash receipt ledger, paper decision tables. No historical score pass during issuance. Local gate relies on verified manual external receipt, not an immutable remote server. Existing development entrypoints retain 2024 guards; original journal untouched.
+
+research_buy_final.py — отдельный gated historical evaluator, BUY_FINAL_LOCK.json pins committed protocol, code, input CSV hashes and three prior reports; shared forecast/simulation helpers, no change to development cutoffs, local immutable final report. No new dependencies or calls to market API/LLM. BUY journal separate.

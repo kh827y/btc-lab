@@ -22,13 +22,18 @@ def contiguous(dates):
 def collect(prices,signals,end=DEV_END):
     if end>DEV_END:
         raise ValueError("Final data are not permitted")
+    return collect_schedules(prices,signals,COMMON_START,end)
+
+
+def collect_schedules(prices,signals,start,end):
+    """Shared rotation inputs; caller owns the evaluation cutoff."""
     mapped={m:{t:{**v["state"],"models":{"M1":v["pred"][m]},
                   "thresholds":{.8:v["thresholds"][m]}}
                for t,v in signals.items() if v["thresholds"][m] is not None}
             for m in MODELS}
     dates=[];opens=[];closes=[];schedules={m:[] for m in MODELS}
     # Exact original extension dates, eligibility, and rule; no selection by outcome.
-    for t in mondays(COMMON_START,end):
+    for t in mondays(start,end):
         if t+8*WEEK>=end:
             break
         x=window(prices,t,t+8*WEEK+DAY)

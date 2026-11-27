@@ -1,0 +1,25 @@
+{
+  "protocol": "BUY-001-final-v1",
+  "input_hashes": {
+    "bitstamp": "4b733feda6bd69c4810471440d2b53fba69ccdd3af47ca3caae593db75063bf9",
+    "coinbase": "bc6282765d3e1638522e16422c0e833261c3058c6b7c4f6dbe869c2f3d36766e"
+  },
+  "development_report_hashes": {
+    "buy_development_report.json": "fa91497fed3a8601b7951b39a80e1bf26a2cb87cd489126c9ef25ba77eb97c92",
+    "buy_risk_extension_report.json": "a567f3e1917f4036ae038d520b7ab29f03b23cb0a4f07d53aad164bb8398ac2c",
+    "buy_audit_controls_report.json": "9328840c43b806d44797b44e3d3060d5159dc6697e5ec34358a5a2227ab488a4"
+  },
+  "blobs": {
+    "BUY_FINAL.md": "37b5f5293564fa84fcdcbae4bc5cfa833ac37341",
+    "BUY_PROTOCOL.md": "c8a5c32f17b5f5f3d8e7d6e079a8c8bdec4faa8b",
+    "research_buy_final.py": "66c6272320b21401d4883b1483dd73e8aa161774",
+    "research_buy.py": "f324eee6b803a240f373d900a77a878e66bb3a7b",
+    "research_buy_risk.py": "9ed0a06617660c7fa0ec438b11e77523a6cc6b16",
+    "research_buy_audit.py": "af93807d0ccca5def93e30ce8233449757c0ab88",
+    "research_daily_usd.py": "44e2095492e7917c92db989c9592b286fcccaf3b",
+    "binance_minute.py": "300e030bc26c221da36eeb8f03c71481d622c844",
+    "buy_journal.py": "9648122c1d9a1e3ba6b2632e56b4e0e3cce0d4ae",
+    "forecast_journal.py": "4949f781a3844a177ac44710f956dc17bed2538f",
+    "requirements.txt": "fc1787be12b94f2fc72bf6de2936075eb575ecac"
+  }
+}

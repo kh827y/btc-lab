@@ -155,12 +155,17 @@ def schedule(prices,t,units,annual_cash=0.,fee=.001):
 def purchases(prices,signals,end=DEV_END):
     if end>DEV_END:
         raise ValueError("Final data are not permitted")
+    return purchase_rows(prices,signals,COMMON_START,end)
+
+
+def purchase_rows(prices,signals,start,end):
+    """Shared simulation; caller owns the evaluation cutoff."""
     mapped={m:{t:{**v["state"],"models":{"M1":v["pred"][m]},
                       "thresholds":{.8:v["thresholds"][m]}}
                for t,v in signals.items() if v["thresholds"][m] is not None}
             for m in ("M1","L1","M2")}
     rows=[]
-    for t in mondays(COMMON_START,end):
+    for t in mondays(start,end):
         if t+8*WEEK>=end:
             break
         if window(prices,t,t+8*WEEK+DAY) is None:

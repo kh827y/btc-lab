@@ -220,6 +220,11 @@ def simulate(prices,signals,t,rule,n=8,ma=20,dip=.2,risk=.8,fee=0.001):
 def episodes(prices,signals,start,end,n=8,ma=20,dip=.2,risk=.8,fee=.001):
     if end>DEV_END:
         raise ValueError("Final data are not permitted")
+    return purchase_episodes(prices,signals,start,end,n,ma,dip,risk,fee)
+
+
+def purchase_episodes(prices,signals,start,end,n=8,ma=20,dip=.2,risk=.8,fee=.001):
+    """Shared simulation; caller owns the evaluation cutoff."""
     rows=[];skipped=[]
     for t in mondays(start,end):
         if t+n*WEEK>=end:
