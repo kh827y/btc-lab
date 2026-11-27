@@ -578,7 +578,7 @@
       {
         "id": "ABSORB-001",
         "kind": "descriptive_state_comparison",
-        "status": "registered_pending_preflight",
+        "status": "descriptive_preflight_reviewed_pending_outcomes",
         "decision_id": [
           "D1",
           "D3"
@@ -631,6 +631,48 @@
             "sandbox_report_sha256": "00b8c1d7254660988b9fe88684499f76d0ab72fd885c78d498ad5dd8fea6a435",
             "summary": "Same archives after Amendment 1. Gates pass; 255 origins; D-heavy 31, D-light 21; largest single-year share 0.32/0.43; SMD R -0.08, log sigma 0.14, depth 0.87 (adjusted estimate is headline); approximate minimum detectable log return 0.059. No forward outcome computed.",
             "interpretation": "Sandbox check only. Owner's local preflight is the report of record; outcomes remain closed until it is reviewed."
+          },
+          {
+            "status": "owner_preflight_reviewed_descriptive_outcomes_permitted",
+            "report_sha256": "12a775b3d1d837eb2c6e18ef9addcb94c31042428e71a26d9cbb2049cd1b14bc",
+            "data_manifest_sha256": "cc7dfc3c8f9b21117def8589d37cde9c384115028c47d843ad45f9312abb6dfe",
+            "origins_sha256": "12fd3d80a3627ac3b2ff1a7050df3b2d6c74eff5c40222888df4b10204df1319",
+            "result": {
+              "origins": 255,
+              "n": [
+                31,
+                21
+              ],
+              "valid_hours": 55348,
+              "total_hours": 55872,
+              "classification_coverage": 0.9961240310077519,
+              "corr_E_R": -0.1691385719809822,
+              "balance_smd": {
+                "R": -0.08180639198331192,
+                "log_sigma": 0.14497442573555408,
+                "depth": 0.8652751554427233
+              },
+              "median_depth_pct": [
+                -28.384340110520068,
+                -48.119709631532835
+              ],
+              "approx_mde_log_return": 0.05908743213308956,
+              "depth_bands_counts_0_20_40_60_plus": [
+                [
+                  11,
+                  11,
+                  7,
+                  2
+                ],
+                [
+                  3,
+                  2,
+                  8,
+                  8
+                ]
+              ]
+            },
+            "interpretation": "Actual uploaded bytes hashed; origin hash, counts by group/year and primary SMDs independently reproduced from origin rows. Same manifest and reported counts as sandbox v2; report bytes differ, not claimed identical. No missing primary covariates. Marginal depth ranges overlap for 28/31 heavy and 21/21 light, not proof of joint overlap; depth and year imbalance remain substantial. Adjusted estimate is predeclared headline, not causal control; show unadjusted and sensitivity results. Block resampling uses ordered eligible origins, not a complete calendar (two 42-day and one 14-day gaps); 4/13-week intervals are approximate, 13-week sensitivity for unadjusted contrast only. Centered flow not absolute net selling; standardized price move not exact raw weekly return. No raw minute replay, independent full test execution or outcomes reviewed here. Permit single frozen descriptive run only, no retuning, no confirmation or trading rule."
           }
         ]
       }
