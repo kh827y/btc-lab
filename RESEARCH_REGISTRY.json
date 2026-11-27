@@ -574,6 +574,53 @@
         "synthetic_gate_spec_and_result": "Not applicable to manual fact-analysis feasibility",
         "code_and_data_versions": "EVENT-FACT-PILOT-v1; event-fact-2023-packages-v1",
         "attempts": []
+      },
+      {
+        "id": "ABSORB-001",
+        "kind": "descriptive_state_comparison",
+        "status": "registered_pending_preflight",
+        "decision_id": [
+          "D1",
+          "D3"
+        ],
+        "protocol_files": [
+          "ABSORB_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_absorb.py"
+        ],
+        "local_reports": [
+          "data/research/absorb_v1/absorb_preflight.json",
+          "data/research/absorb_v1/absorb_outcomes.json"
+        ],
+        "evaluation_window": "Binance BTCUSDT spot 1m archive 2017-08-17..2023-12-31; first classified weekly origin about 2018-10; no 2024+ bar is loaded",
+        "target_and_horizon": "7-day log wait cost: Monday 00:00 UTC open to the open seven days later, after a Sunday 00:00 UTC state cutoff; secondary 7-day risk, 28-day wait cost and next-week flow",
+        "baseline": "Price-only state: standardized down week versus not; flow enters only as excess net taker flow orthogonal to the weekly price move",
+        "primary_comparison": "Descriptive: mean wait7 in D-heavy minus D-light (down weeks with more versus less net taker selling than typical for the price move); block-bootstrap 90% interval; covariate-adjusted estimate is the headline if preflight balance is flagged",
+        "secondary_comparisons": [
+          "D-heavy/D-typical/D-light dose-response",
+          "N-heavy versus N-light",
+          "volatility-standardized wait7",
+          "7-day maximum adverse excursion",
+          "realized-to-trailing volatility ratio",
+          "28-day wait cost",
+          "next-week flow",
+          "entry at cutoff",
+          "six other weekday clocks",
+          "13-week bootstrap block"
+        ],
+        "minimum_useful_effect_and_rationale": "None imposed: owner threshold unspecified. Report states which absolute differences (1%, 3%, 5%) the interval rules out; preflight states the minimum detectable difference before outcomes",
+        "data_and_availability": "Local checksum-verified Binance Vision minute archives; all features use hours strictly before the cutoff; archive retrieval date is not original publication proof",
+        "evaluation_and_dependence": "Non-overlapping weekly outcome windows; circular moving-block bootstrap over weekly origins; shared market cycles, counts are not independent observations",
+        "synthetic_gate_spec_and_result": "Not applicable, descriptive only; code tested on synthetic null and planted worlds as implementation checks, not as market evidence",
+        "stopping_rule": "One immutable preflight, then one immutable outcome report only if both validity gates and the sample floor pass and the reviewed preflight hash is supplied; no variants after outcomes; result closes only this contrast, not the mechanism",
+        "code_and_data_versions": "ABSORB-001-descriptive-v1; data manifest SHA-256 recorded in each report",
+        "prior_exposure": [
+          "2026-11-27 exploratory probe on Binance BTCUSDT daily klines 2017-08-17..2026-11-26: same-day return/taker-imbalance correlation, slope and mean imbalance by year, imbalance autocorrelation, zero-fee window dispersion and volume; no forward returns",
+          "FLOW-001 used the same venue's daily taker flow 2017-2023 against 28-day outcomes",
+          "BUY-001, DD-001, RISK-001 and TREND-001/002 exposed 2018-2023 price outcomes; not a holdout"
+        ],
+        "attempts": []
       }
     ]
   },
