@@ -103,7 +103,7 @@ def parse_hours(raw, family, d):
     return out
 
 
-def parse_metrics(raw, d, futures):
+def parse_metrics(raw, d, futures, *, include_samples=False):
     _, name = source("metrics", d)
     rows = csv_rows(raw, name)
     if not rows or len(set(rows[0])) != len(rows[0]):
@@ -135,6 +135,7 @@ def parse_metrics(raw, d, futures):
                 conflicts.add(t)
         seen[t] = pair
     good = []
+    samples = {}
     unmatched = 0
     for t, pair in sorted(seen.items()):
         if pair is None or t in conflicts:
@@ -146,13 +147,16 @@ def parse_metrics(raw, d, futures):
             unmatched += 1
             continue
         good.append(t)
+        if include_samples:
+            samples[t] = pair
     gaps = [(b-a).total_seconds()/60 for a,b in zip(good,good[1:])]
-    return {"rows": len(rows)-1, "valid_timed": len(good), "duplicates": dup,
+    quality = {"rows": len(rows)-1, "valid_timed": len(good), "duplicates": dup,
             "conflicts": len(conflicts), "rejected": rejected, "unit_or_hour_mismatch": unmatched,
             "hours_covered": len({t.hour for t in good}),
             "five_minute_slots_covered": len({t.hour*12+t.minute//5 for t in good}),
             "max_gap_minutes": max(gaps, default=None),
             "first": good[0].isoformat() if good else None, "last": good[-1].isoformat() if good else None}
+    return (quality, samples) if include_samples else quality
 
 
 def run(root=ROOT, fetcher=fetch):
