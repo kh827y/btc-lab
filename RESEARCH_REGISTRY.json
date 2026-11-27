@@ -366,6 +366,32 @@
             "summary": "11 eligible of 14 per venue, MA200 identical to immediate, MA50 delayed five with one better and four worse terminal wealth. Bitstamp median terminal returns 45.68% immediate and 34.42% MA50. Coinbase near-zero intraday lows in March/April 2017 require source audit; do not silently adjust. Descriptive only; no crossover or general trend skill claim. Raw prices and CI not independently replayed."
           }
         ]
+      },
+      {
+        "id": "TREND-002",
+        "kind": "descriptive_schedule_feasibility",
+        "status": "registered_pending_preflight",
+        "decision_id": [
+          "D1",
+          "D3"
+        ],
+        "protocol_files": [
+          "TREND_BREAK_PROTOCOL.md"
+        ],
+        "implementation_files": [
+          "research_trend_break.py"
+        ],
+        "local_reports": [
+          "data/research/trend_break_v1/trend_break_preflight.json"
+        ],
+        "evaluation_window": "Common history 2015-07-20..2023-12-31, separate Bitstamp sensitivity from 2012-01-01",
+        "target_and_horizon": "Weekly break below or at MA50 after above; first subsequent above; schedule feasibility only at 28/90 days",
+        "baseline": "Fixed one-week delay; immediate and half-now/half-in-one-week controls for possible subsequent descriptive comparison",
+        "primary_comparison": "Preflight counts only; later descriptive wait for recovery versus fixed seven-day delay at common 28-day terminal, 90-day secondary",
+        "stopping_rule": "One immutable preflight; stop if no meaningful schedule variation or differences confined to one overlap cluster; no outcome code before review, no optimization or confirmation",
+        "synthetic_gate_spec_and_result": "Not applicable to descriptive feasibility",
+        "code_and_data_versions": "TREND-002-feasibility-v1; pinned BUY and early Bitstamp hashes",
+        "attempts": []
       }
     ]
   },
