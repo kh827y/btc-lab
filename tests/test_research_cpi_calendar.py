@@ -8,7 +8,12 @@ class CalendarTest(unittest.TestCase):
         name=RELEASES[10][1]
         dates=["2017-12-12"]+[f"{y}-{m:02d}-12" for y in range(2018,2024) for m in range(1,13)]+["2024-01-12"]
         raw=("Release: "+name+"\nRelease Dates:\n-----\n"+"\n".join(dates)).encode()
-        got,counts=parse(raw,10)
+        got,counts,duplicates=parse(raw,10)
+        self.assertEqual(duplicates,0)
+        got2,counts2,duplicates2=parse(raw+b"\n2018-01-12\n1966-01-10\n1966-01-10",10)
+        self.assertEqual(got2,got)
+        self.assertEqual(counts2,counts)
+        self.assertEqual(duplicates2,2)
         self.assertEqual(len(got),73)
         self.assertEqual(counts[2018],12)
         with self.assertRaises(ValueError):

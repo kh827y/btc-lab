@@ -51,14 +51,17 @@ def parse(raw,rid):
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}",line):
             raise ValueError("Unexpected release date line: "+label)
         dates.append(date.fromisoformat(line))
-    if len(set(dates))!=len(dates) or not dates:
-        raise ValueError("Empty or duplicate dates: "+label)
+    if not dates:
+        raise ValueError("Empty dates: "+label)
+    # Calendar membership is per unique day, not per publication or revision.
+    # ALFRED can repeat dates. Preserve raw bytes and report duplicate counts.
+    duplicates=len(dates)-len(set(dates))
     selected={d for d in dates if START<=d<STOP}
     counts=Counter(d.year for d in selected)
     # Sanity floor, NOT proof of complete announcement coverage.
     if any(counts[y]<minimum for y in range(2018,2024)) or counts[2017]<1:
         raise ValueError("Incomplete date coverage: "+label)
-    return selected,dict(sorted(counts.items()))
+    return selected,dict(sorted(counts.items())),duplicates
 
 
 def calendar(root,fetcher=fetch):
@@ -73,15 +76,15 @@ def calendar(root,fetcher=fetch):
             raw=obj["raw"].encode("utf-8")
             if obj["url"]!=u or digest(raw)!=obj["sha256"]:
                 raise ValueError("ALFRED cache integrity failure")
-            selected,counts=parse(raw,rid)
+            selected,counts,duplicates=parse(raw,rid)
         else:
             raw=fetcher(u,LIMIT)
             if len(raw)>LIMIT:
                 raise ValueError("ALFRED response exceeds limit")
-            selected,counts=parse(raw,rid)
+            selected,counts,duplicates=parse(raw,rid)
             obj={"url":u,"sha256":digest(raw),"raw":raw.decode("utf-8")}
             json_write(p,obj)
-        sources[label]={"url":u,"sha256":obj["sha256"],"year_counts":counts}
+        sources[label]={"url":u,"sha256":obj["sha256"],"year_counts":counts,"duplicate_date_rows":duplicates}
         for d in selected:
             dates[d].add(label)
     return dates,sources
