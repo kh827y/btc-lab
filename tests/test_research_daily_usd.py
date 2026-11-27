@@ -72,3 +72,19 @@ class DailyUSDTest(unittest.TestCase):
         b={self.t:(100,110,90,101,2)}
         self.assertAlmostEqual(cross_check(a,b)["median_abs_close_diff_pct"],1)
         self.assertIsNone(cross_check(a,{}))
+
+
+    def test_explicit_request_headers(self):
+        from research_daily_usd import fetch
+        url=page_url("coinbase",self.a,self.b)
+        with patch("research_daily_usd.urlopen") as open_url:
+            response=open_url.return_value.__enter__.return_value
+            response.geturl.return_value=url
+            response.read.return_value=b"[]"
+            self.assertEqual(fetch(url,100),b"[]")
+            req=open_url.call_args.args[0]
+            self.assertEqual(req.get_header("User-agent"),"BTC-Lab research")
+            self.assertEqual(req.get_header("Accept"),"application/json")
+            response.geturl.return_value="https://example.invalid"
+            with self.assertRaisesRegex(ValueError,"redirect"):
+                fetch(url,100)

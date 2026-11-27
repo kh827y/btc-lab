@@ -9,10 +9,11 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 import numpy as np
 
-from binance_minute import atomic_write, digest, fetch, json_write
+from binance_minute import atomic_write, digest, json_write
 
 ROOT=Path(__file__).resolve().parent/"data"/"research"/"daily_usd_v1"
 STOP=date(2026,11,27)  # Exclusive; no incomplete current day.
@@ -49,8 +50,8 @@ def page_url(market,start,stop):
         params={"step":DAY,"limit":n,"start":seconds(start),
                 "end":seconds(stop)-1,"exclude_current_candle":"true"}
     else:
-        params={"granularity":DAY,"start":start.isoformat()+"T00:00:00Z",
-                "end":stop.isoformat()+"T00:00:00Z"}
+        params={"start":start.isoformat()+"T00:00:00Z",
+                "end":stop.isoformat()+"T00:00:00Z","granularity":DAY}
     return base+"?"+urlencode(params)
 
 
@@ -99,6 +100,18 @@ def parse_page(raw,market,start,stop):
     if not out:
         raise ValueError("No candles within requested range")
     return out,outside
+
+
+def fetch(url,limit):
+    # Use the same explicit request headers as the successful CPI Coinbase check.
+    req=Request(url,headers={"User-Agent":"BTC-Lab research","Accept":"application/json"})
+    with urlopen(req,timeout=25) as response:
+        if response.geturl()!=url:
+            raise ValueError("Unexpected redirect")
+        raw=response.read(limit+1)
+    if len(raw)>limit:
+        raise ValueError("Response too large")
+    return raw
 
 
 def download(url,fetcher):
@@ -151,6 +164,7 @@ def coverage(rows,start,stop):
             "first":date_at(min(rows)).isoformat() if rows else None,
             "last":date_at(max(rows)).isoformat() if rows else None,
             "missing_dates":missing,"zero_volume_days":sum(v[4]==0 for v in rows.values()),
+            "zero_volume_dates":[date_at(t).isoformat() for t,v in sorted(rows.items()) if v[4]==0],
             "by_year":by_year,"fraction":len(rows)/(stop-start).days}
 
 
@@ -199,7 +213,10 @@ def collect(root,market,fetcher):
           "coverage_gate":usable,"pages":pages,"errors":errors,**quality,
           "csv_sha256":None}
     if complete:
-        info["csv_sha256"]=save_snapshot(root/(market+"_daily.csv"),csv_bytes(combined))
+        raw=csv_bytes(combined)
+        if market=="bitstamp" and digest(raw)!="4b733feda6bd69c4810471440d2b53fba69ccdd3af47ca3caae593db75063bf9":
+            raise ValueError("Bitstamp snapshot differs from the verified 2014–2026 version")
+        info["csv_sha256"]=save_snapshot(root/(market+"_daily.csv"),raw)
     return combined,info
 
 
