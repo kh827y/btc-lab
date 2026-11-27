@@ -87,3 +87,5 @@ research_buy_final.py — отдельный gated historical evaluator, BUY_FIN
 research_flow.py — изолированный development-only FLOW-001, фиксированные daily Binance public pages, нормированный taker flow, shared BUY features/logistic/outcome/interval, paired forecast comparison. Кэш и report under data/research/flow_v1. Нет доступа к 2024+ numeric values, не меняет BUY/CPI locks или dashboard.
 
 research_value.py — development-only valuation reconstruction, local Kote MVRV, pinned prefix snapshot, 28/90d matched probability comparisons and descriptive valuation bands, 3/8-day offsets. Reuses BUY features/labels/logistic/interval, no frozen files changed, no new credentials/network. Historical vintages not proven.
+
+research_fund.py — isolated development-only settled funding study; reuse original Binance checksum/ZIP helpers and BUY feature/label/logistic/interval, fixed monthly archive prefix, exact 21 settlement feature, matched comparison, data/research/fund_v1; no original frozen files modified.

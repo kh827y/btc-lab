@@ -89,3 +89,6 @@ Binance public BTCUSDT spot klines: quote asset volume и taker buy quote asset 
 
 ### FLOW-001 / VALUE-001
 FLOW daily snapshot 2327/2328, malformed 2018-02-08; all 256 evaluation origins per market. Kote mvrv local archive (prior 5076 valid values, actual development coverage still to verify). VALUE-001 preserves prefix snapshot and hashes, no redistribution, no credential access. Kote methodology/docs describe daily valuations after UTC midnight; historical publication/revisions unverified, exact 3/8-day date offsets are assumptions. No live point-in-time claim.
+
+### VALUE-001 / FUND-001
+VALUE: Kote MVRV 3652/3652 days 2014–2023, earliest 2013-01-01, local archive source SHA-256 639d1d08f776ae8df1eb9ba1c1ec44e2f7187c3ce66195d18b3c6bf0d2b78554; development snapshot 2066c92e0d9001ddfd57e3c887988f1efa0fbe572fa20a750cb86e1df6fbf1cb. No vintage proof. FUND: new official Binance public monthly fundingRate archives, 2020-01..2023-12, original ZIP/checksums, 8h slots and actual timestamps, no interpolation, coverage not verified until local run. Local only, no keys. OI not included.

@@ -80,3 +80,6 @@ ETF TFTC открывается в разделе История без ключ
 
 ### VALUE-001
 `update.bat`, затем `run_value_development.bat`. Использует data/extended/kote-mvrv.json и имеющиеся USD CSV; без API ключей, без загрузки или изменений исходных архивов. Пришли data/research/value_v1/value_development_report.json, при проблеме покрытия coverage.json; если отсутствует Kote файл — текст ошибки. FLOW-001 завершён development, не повторять. См. VALUE_PROTOCOL.md.
+
+### FUND-001
+После update.bat запусти run_fund_development.bat. Загружает небольшие месячные Binance funding ZIP и CHECKSUM, использует прежние USD CSV. Пришли data/research/fund_v1/fund_development_report.json, при ошибке покрытия — coverage.json. VALUE development завершён, MVRV остаётся кандидатом для дополнительной проверки. См. FUND_PROTOCOL.md. Ключи не нужны.
