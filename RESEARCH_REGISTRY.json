@@ -729,7 +729,7 @@
       {
         "id": "DELEVER-001",
         "kind": "descriptive_state_comparison",
-        "status": "descriptive_preflight_reviewed_pending_outcomes",
+        "status": "closed_descriptive",
         "decision_id": [
           "D1",
           "D3"
@@ -823,6 +823,104 @@
               ]
             },
             "interpretation": "Actual uploaded report bytes hashed; all 45 dates, thresholds, entry times, classifications and spacing checked, group/year/band counts recomputed. All shock days complete for spot, futures and premium; one contraction episode lacks prior28 context. Reporting floor met. Meaningful imbalance in shock severity, prior price context and year remains; only moderate drop band has >=5 in both groups. No adjustment or threshold search; report all frozen contrasts with explicit caveats. Allow one descriptive outcome run on exact reviewed input and replayed preflight only. No causal, predictive or trading-rule authorization. Raw panel not independently replayed."
+          },
+          {
+            "status": "owner_outcomes_reviewed_context_only",
+            "report_sha256": "5df7cc82d722d95eadfdb7b1260481467a16e1b19a1582e6878f006b23249c82",
+            "preflight_sha256": "e1f218b6eb4964934f34b237ac700974de071d0e6889b1c1851228535a116a13",
+            "panel_sha256": "485143815dfaa44054b90bfeee284ca513aea1deafd917126d50e3709f6e90cc",
+            "result": {
+              "n": 45,
+              "groups": [
+                20,
+                25
+              ],
+              "wait7_median": [
+                0.007329175469735438,
+                -0.004399574468085032
+              ],
+              "wait7_mean": [
+                0.009881744395270098,
+                -0.018893090487863428
+              ],
+              "wait7_positive": [
+                12,
+                12
+              ],
+              "primary_median_difference": 0.01172874993782047,
+              "wait28_n": [
+                19,
+                25
+              ],
+              "wait28_median": [
+                0.023393530101378568,
+                -0.08444682064851261
+              ],
+              "wait28_mean": [
+                0.05800812941667747,
+                -0.05862052018265803
+              ],
+              "wait28_positive": [
+                11,
+                5
+              ],
+              "secondary_median_difference": 0.10784035074989118,
+              "worst7_median": [
+                -0.0633796233011521,
+                -0.057781250000000006
+              ],
+              "worst7_n": [
+                18,
+                25
+              ],
+              "delayed_btc_relative_mean7": [
+                0.9962804095331308,
+                1.0304027155666184
+              ],
+              "split_btc_relative_mean7": [
+                0.9981402047665654,
+                1.0152013577833092
+              ],
+              "median_difference_by_year": {
+                "2020": [
+                  null,
+                  null
+                ],
+                "2021": [
+                  0.014475604935903386,
+                  0.19385363561563612
+                ],
+                "2022": [
+                  0.004053620348315967,
+                  0.0633471497290714
+                ],
+                "2023": [
+                  0.013309700769227106,
+                  0.24745885845783466
+                ]
+              },
+              "median_difference_by_drop_band": {
+                "5to10": [
+                  0.015198469789839186,
+                  0.08700441559658689
+                ],
+                "10plus": [
+                  0.06481922151164876,
+                  -0.16631309615612172
+                ]
+              },
+              "overlap7": {
+                "scored_windows": 45,
+                "overlap_clusters": 45,
+                "overlapping_pairs": 0
+              },
+              "overlap28": {
+                "scored_windows": 44,
+                "overlap_clusters": 14,
+                "overlapping_pairs": 50
+              }
+            },
+            "interpretation": "Closed descriptive. Modest primary seven-day difference, no clear reduction in seven-day downside; 28-day secondary contrast is directionally consistent by comparable calendar year and 5–10% drop band but reverses in >=10% band (5 vs 2 cases). Not evidence of incremental skill over comparable price states, independent replication, or forced-liquidation attribution. Keep as contextual hypothesis only; no signal weights, forecast, threshold changes or additional retrospective screening. Equal-budget relative BTC comparisons are not portfolio profit. All 45 event records match actual preflight bytes; recomputed wait cost and relative BTC quantities from reported entry/terminal prices, checked primary group counts, means and medians. Two contraction risk windows lack complete hourly lows; 2023-12-11 contraction has no 28-day terminal before cutoff. Raw panel and full suite not independently replayed."
           }
         ]
       }
