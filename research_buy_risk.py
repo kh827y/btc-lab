@@ -44,8 +44,24 @@ def logistic(x,y,current):
 def replay(prices,first,end=DEV_END):
     if end>DEV_END:
         raise ValueError("Final data are not permitted")
+    signals=build_signals(prices,first,end)
+    predictions=[]
+    for t,v in signals.items():
+        if not COMMON_START<=t or t+(HORIZON+1)*DAY>end:
+            continue
+        y=outcome(prices,t)
+        if y is None:
+            continue
+        predictions.append({"date":t.isoformat(),"actual":{"up":int(y["log_return"]>0),
+                            "loss_15":int(y["log_worst"]<=np.log(.85))},
+                            "pred":{m:{k:p[k] for k in ("p_up","p_loss_15")} for m,p in v["pred"].items()}})
+    return signals,predictions
+
+
+def build_signals(prices,first,end):
+    """Shared forecasts-only path; no score pass."""
     pending=[];history=[];prior={m:[] for m in ("M1","L1","M2")}
-    signals={};predictions=[]
+    signals={}
     for t in mondays(first,end):
         while pending and pending[0][0]+(HORIZON+1)*DAY<=t-DAY:
             d,s,x=pending.pop(0)
@@ -73,16 +89,7 @@ def replay(prices,first,end=DEV_END):
         signals[t]={"state":s,"pred":p,"thresholds":thresholds}
         for m in prior:
             prior[m].append(p[m]["p_loss_15"])
-    for t,v in signals.items():
-        if not COMMON_START<=t or t+(HORIZON+1)*DAY>end:
-            continue
-        y=outcome(prices,t)
-        if y is None:
-            continue
-        predictions.append({"date":t.isoformat(),"actual":{"up":int(y["log_return"]>0),
-                            "loss_15":int(y["log_worst"]<=np.log(.85))},
-                            "pred":{m:{k:p[k] for k in ("p_up","p_loss_15")} for m,p in v["pred"].items()}})
-    return signals,predictions
+    return signals
 
 
 def interval(values,dates):

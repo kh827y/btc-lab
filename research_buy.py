@@ -29,6 +29,13 @@ RESAMPLES=10000
 
 def load_development(root,market):
     """Verify complete file identity, parse numeric values only before cutoff."""
+    return load_prefix(root,market,DEV_END)
+
+
+def load_prefix(root,market,stop):
+    """Shared pinned snapshot reader. Callers own the evaluation cutoff."""
+    if not FIRST[market]<stop<=date(2026,11,27):
+        raise ValueError("Invalid snapshot cutoff")
     raw=(root/(market+"_daily.csv")).read_bytes()
     if digest(raw)!=HASHES[market]:
         raise ValueError("Daily snapshot changed: "+market)
@@ -39,7 +46,7 @@ def load_development(root,market):
     cursor=FIRST[market]
     for r in reader:
         d=date.fromisoformat(r["date_utc"])
-        if d>=DEV_END:
+        if d>=stop:
             break
         if d!=cursor:
             raise ValueError("Missing, duplicated or unordered daily row")
@@ -49,8 +56,8 @@ def load_development(root,market):
         if not all(math.isfinite(x) for x in v) or not 0<lo<=min(op,cl)<=max(op,cl)<=hi or vol<0:
             raise ValueError("Invalid daily OHLCV")
         prices[d]=v
-    if cursor!=DEV_END:
-        raise ValueError("Incomplete development history")
+    if cursor!=stop:
+        raise ValueError("Incomplete snapshot prefix")
     return prices
 
 
@@ -131,8 +138,20 @@ def forecast_score(pred,y):
 def weekly_signals(prices,first,end=DEV_END):
     if end>DEV_END:
         raise ValueError("Final data are not permitted")
-    # Keep past states; outcomes are computed only when already fully known.
-    pending=[];history=[];risks=[];signals={};scored=[]
+    signals=build_signals(prices,first,end)
+    scored=[]
+    for t,s in signals.items():
+        if t+(HORIZON+1)*DAY>end:
+            continue
+        y=outcome(prices,t)
+        if y is not None:
+            scored.append({"date":t.isoformat(),"models":{k:forecast_score(v,y) for k,v in s["models"].items()}})
+    return signals,scored
+
+
+def build_signals(prices,first,end):
+    """Forecasts only, no evaluation pass. Caller supplies point-in-time prices."""
+    pending=[];history=[];risks=[];signals={}
     for t in mondays(first,end):
         cutoff=t-DAY
         while pending and pending[0][0]+(HORIZON+1)*DAY<=cutoff:
@@ -150,14 +169,7 @@ def weekly_signals(prices,first,end=DEV_END):
         thresholds={p:float(np.quantile(risks[-104:],p)) for p in (.7,.8,.9)} if len(risks)>=26 else None
         signals[t]={**s,"models":models,"thresholds":thresholds}
         risks.append(models["M1"]["p_loss_15"])
-    # Evaluate only after forecasts are fixed and only completed development windows.
-    for t,s in signals.items():
-        if t+(HORIZON+1)*DAY>end:
-            continue
-        y=outcome(prices,t)
-        if y is not None:
-            scored.append({"date":t.isoformat(),"models":{k:forecast_score(v,y) for k,v in s["models"].items()}})
-    return signals,scored
+    return signals
 
 
 def allocation(rule,i,n,remaining,s,ma=20,dip=.2,risk=.8):
