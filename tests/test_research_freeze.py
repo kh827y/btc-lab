@@ -106,3 +106,51 @@ class FrozenDataTest(unittest.TestCase):
             h=create()
             with self.assertRaisesRegex(ValueError,"Post-release"):
                 read_cpi(path,manifest_hash=h,counts=(1,1,1,1))
+
+    def test_migration_preserves_dev_removes_only_generated_test(self):
+        import research_cpi as mod
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            a,_=self.fixture(root)
+            frozen=snapshot(a)
+            out=root/"prepared";out.mkdir()
+            groups={s:{k:[{"id":s,"kind":k}] for k in
+                      ("features","outcomes","controls","delayed_features")}
+                    for s in ("train","development")}
+            payloads={f"{s}_{k}.csv":mod.csv_bytes(v)
+                      for s,g in groups.items() for k,v in g.items()}
+            hashes={n:digest(v) for n,v in payloads.items()}
+            for n,v in payloads.items():(out/n).write_bytes(v)
+            for n in mod.LEGACY_TEST_FILES:(out/n).write_bytes(b"DO NOT READ")
+            (out/"development_report.json").write_bytes(b"previous report")
+            legacy={"complete":True,"protocol":"cpi-v1-preparation","cpi_sha256":"fixture",
+                    "file_sha256":hashes}
+            (out/"coverage.json").write_text(json.dumps(legacy))
+            prices=Mock()
+            prices.provenance={"snapshot_sha256":snapshot_hash(frozen)}
+            events=[{"release_time_utc":"2024-01-11T13:30:00Z"}]
+            with patch.multiple(mod,CPI_HASH="fixture",PRICE_HASH=snapshot_hash(frozen),
+                                EXPECTED_DEV_HASHES=hashes), \
+                 patch.object(mod,"read_cpi",return_value=(events,{},"fixture")), \
+                 patch.object(mod.MinutePrices,"load",return_value=prices), \
+                 patch.object(mod,"development_groups",return_value=(groups,{})) as compute:
+                (root/"audit.json").write_text(json.dumps(a))
+                # Mismatched data do not destroy any prior files.
+                target=out/"train_features.csv"
+                target.write_bytes(b"changed")
+                with self.assertRaisesRegex(ValueError,"Legacy development file changed"):
+                    mod.build("unused",root,out)
+                self.assertTrue(all((out/n).exists() for n in mod.LEGACY_TEST_FILES))
+                target.write_bytes(payloads[target.name])
+                report=mod.build("unused",root,out)
+                self.assertFalse(report["test_generated"])
+                self.assertEqual(report["test_events_reserved"],1)
+                self.assertFalse(any((out/n).exists() for n in mod.LEGACY_TEST_FILES))
+                self.assertEqual((out/"development_report.json").read_bytes(),b"previous report")
+                self.assertEqual({n:(out/n).read_bytes() for n in hashes},payloads)
+                (root/"audit.json").write_text("{}")
+                self.assertEqual(mod.build("unused",root,out),report)
+                compute.assert_called_once()
+                target.write_bytes(b"changed again")
+                with self.assertRaisesRegex(ValueError,"Prepared file changed"):
+                    mod.build("unused",root,out)
