@@ -92,3 +92,6 @@ ETF TFTC открывается в разделе История без ключ
 
 
 MACRO timeout recovery: update.bat and rerun run_macro_development.bat. Automatically tries FRED/ALFRED and FRED once more, keeps successful cache. If all requests fail, coverage.json contains exact official CSV URLs; save CSV to data/research/macro_v1/manual/DFII10.csv or DTWEXBGS.csv (FRED), or DFII10_20261125.csv / DTWEXBGS_20261125.csv (ALFRED), then rerun. Don't rename a different series or edit values. Send coverage.json if unsuccessful.
+
+### COMB-001
+`update.bat`, `run_comb_development.bat`, send data/research/comb_v1/comb_development_report.json. Uses existing MVRV/OI/funding snapshots and pinned daily USD prices. No new downloads or keys. Development only, post-selection exploratory; see COMB_PROTOCOL.md. MACRO finished, no rerun.

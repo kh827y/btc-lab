@@ -93,3 +93,5 @@ research_fund.py — isolated development-only settled funding study; reuse orig
 research_oi.py — isolated weekly OI reconstruction, verified original ZIPs, conservative Friday timestamps, notional/quantity sanity check, fixed relative OI feature plus existing pinned funding. Shared BUY/FUND calculations, matched sample, local reports only. No final outcomes accessed.
 
 research_macro.py — development-only matched macro probability comparisons, FRED raw snapshots, bounded holidays and publication lag, fixed two financial-condition features, shared BUY/FUND calculations; no historical vintage proof, no changes to frozen code or panel.
+
+research_comb.py — isolated registered post-screening development follow-up, pinned input snapshots, shared BUY/VAL/OI/FUND features and BUY audit rotation; matched labels/models, practical equal-budget comparison, no final data or network. Existing frozen modules untouched.

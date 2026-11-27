@@ -104,3 +104,5 @@ OI repaired coverage 173/174, only 2021-02-19 missing; 136 previously valid reta
 
 
 MACRO acquisition retry: FRED primary, same-series ALFRED fixed 2026-11-25 vintage, one FRED retry. Source/header/hash/retrieval recorded; manual imports marked unverified, no claimed download timestamp. Coverage gate unchanged. No source substitutions; late vintage only, not PIT.
+
+MACRO-001 both FRED primary datasets obtained, DFII10 SHA-256 0af5eb83986adf9e813db36a21dc710b1780bae258d5cac93da9a621d8803722, DTWEXBGS b27c757281efcad3cc12557c74b702820a17a9c6f61fe6f943064309b3626b97, 1229/1225 valid observations out of 1280 weekdays, 178 complete forecasts each. No original vintage proof. COMB uses existing pinned MVRV/OI/funding development snapshots only; preserve originals, no additional downloads.
