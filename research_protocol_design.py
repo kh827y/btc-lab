@@ -2,14 +2,14 @@
 import argparse
 import json
 
-from research_controller import Budget,STAGES,checked_text,require,ControllerError,encode
+from research_controller import Budget,checked_text,require,ControllerError,encode
 from research_credentials import approve,get_key,CredentialError
-from research_provider import CheapTransport,MAX_BUDGET,save
+from research_provider import CheapTransport,MAX_BUDGET,save,PROTOCOL_STAGES,payload,units,INPUT_MARGIN
 from research_tools import ROOT
 
-VERSION="OI-protocol-draft-v1"
+VERSION="OI-protocol-draft-v2"
 REPORT_ROOT=ROOT/"data"/"research"/"agent_protocol"
-DEFAULT_BUDGET=300000
+DEFAULT_BUDGET=200000
 TASK=("Разработай один проект протокола проверки добавочной ценности OI для риска "
       "падения BTC на горизонте 28 дней. Не запускай эксперимент, не меняй реестр. "
       "Сначала выясни, имеет ли смысл проверка с доступной историей; допустимо рекомендовать "
@@ -43,29 +43,69 @@ def validate(obj):
         checked_text(obj[k],1400)
     return obj
 
-def design(transport):
+REVIEW_CONTRACT={"verdict":"revise or defer or suitable_for_human_review",
+                 "issues":[{"field":"one existing protocol field","critique":"specific defect",
+                            "suggested_change":"concise correction"}],
+                 "limitations":"concise residual uncertainty"}
+
+def validate_review(obj):
+    require(type(obj) is dict and set(obj)==set(REVIEW_CONTRACT),"Invalid review schema")
+    require(obj["verdict"] in ("revise","defer","suitable_for_human_review"),
+            "Invalid review verdict")
+    issues=obj["issues"]
+    require(type(issues) is list and len(issues)<=4,"Invalid review issue count")
+    for issue in issues:
+        require(type(issue) is dict and set(issue)=={"field","critique","suggested_change"},
+                "Invalid review issue schema")
+        require(issue["field"] in FIELDS,"Unknown protocol field")
+        checked_text(issue["critique"],900)
+        checked_text(issue["suggested_change"],900)
+    require(obj["verdict"]!="revise" or bool(issues),"Revision requires an issue")
+    checked_text(obj["limitations"],1000)
+    return obj
+
+def review_data(draft):
+    return {"task":"Critique the draft only. Do not reproduce the protocol. "
+                   "Return at most four consequential issues and short corrections. "
+                   "No execution or confirmation; assess power, price confounding and leakage.",
+            "evidence":BRIEF,"worker_draft":draft,"output_contract":REVIEW_CONTRACT}
+
+def design(transport,*,approve_review=lambda _:False):
+    """Fixed task needs no model planning. Keep a valid draft even if review is declined or fails."""
     b=Budget()
-    plan=b.model(transport,*STAGES[0][:2],{
-        "task":TASK,"evidence":BRIEF,
-        "output_contract":{"focus":"short methodological priority","pitfalls":["specific risk"]},
-    },STAGES[0][2])
-    require(set(plan)=={"focus","pitfalls"},"Invalid protocol plan")
-    checked_text(plan["focus"],1000)
-    require(type(plan["pitfalls"]) is list and 1<=len(plan["pitfalls"])<=5,"Invalid pitfalls")
-    for x in plan["pitfalls"]:
-        checked_text(x,600)
-    draft=validate(b.model(transport,*STAGES[1][:2],{
-        "task":TASK,"evidence":BRIEF,"plan":plan,"output_contract":CONTRACT,
-        "instruction":"One hypothesis only; gate result must remain pending. No fabricated data."
-    },STAGES[1][2]))
-    final=validate(b.model(transport,*STAGES[2][:2],{
-        "task":TASK,"evidence":BRIEF,"worker_draft":draft,"output_contract":CONTRACT,
-        "review_instruction":"Correct flaws, especially power, price confounding, overlap and data leakage. "
-                             "Reject unsupported claims. Do not authorize execution or tune to pass."
-    },STAGES[2][2]))
-    return {"kind":VERSION,"status":"draft_human_review_required","confirmation_authorized":False,
-            "gate_executed":False,"evidence":BRIEF,"plan":plan,"worker_draft":draft,
-            "final":final,"budget":b.summary(),"provider":transport.summary()}
+    report={"kind":VERSION,"status":"stopped","confirmation_authorized":False,
+            "gate_executed":False,"evidence":BRIEF,"review":None}
+    stage="worker_draft"
+    try:
+        draft=validate(b.model(transport,*PROTOCOL_STAGES[0][:2],{
+            "task":TASK,"evidence":BRIEF,"output_contract":CONTRACT,
+            "instruction":"Return exactly these keys; each field concise, no repeated text. "
+                          "One hypothesis only; gate result must remain pending. No fabricated data."
+        },PROTOCOL_STAGES[0][2]))
+        report["worker_draft"]=draft
+        report["status"]="draft_human_review_required"
+        stage="review_approval"
+        if approve_review(draft):
+            stage="supervisor_review"
+            report["review"]=validate_review(b.model(transport,*PROTOCOL_STAGES[1][:2],
+                                                    review_data(draft),PROTOCOL_STAGES[1][2]))
+            report["status"]="reviewed_draft_human_review_required"
+        else:
+            report["review_status"]="declined"
+    except ControllerError as exc:
+        report["failed_stage"]=stage
+        # ControllerError strings are host-authored diagnostics, not model payloads.
+        report["controller_error"]=str(exc)
+        if "worker_draft" in report:
+            report["status"]="draft_saved_review_failed"
+    except KeyboardInterrupt:
+        report["failed_stage"]=stage
+        report["controller_error"]="Interrupted; attempted request may have been billed."
+        if "worker_draft" in report:
+            report["status"]="draft_saved_review_interrupted"
+    report["budget"]=b.summary()
+    report["provider"]=transport.summary()
+    return report
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -77,28 +117,35 @@ def main():
     a=p.parse_args()
     if not 0<a.budget_units<=MAX_BUDGET:
         p.error("Invalid budget")
-    print(json.dumps({"task":TASK,"evidence":BRIEF,"output_contract":CONTRACT},ensure_ascii=True,indent=2))
+    print(json.dumps({"task":TASK,"evidence":BRIEF,"output_contract":CONTRACT,"optional_review_contract":REVIEW_CONTRACT},ensure_ascii=True,indent=2))
     if a.preview:
         return 0
-    print("Paid protocol draft. Three model calls, zero tools, no market data.")
+    print("Paid protocol draft. One DeepSeek request, optional separate Sol review, zero tools.")
     print("Estimated reservation cap:",a.budget_units,"base units, not a hard provider-side limit.")
     if not approve("Approve this data scope and paid run?"):
         return 0
     try:
         key=get_key(replace=a.replace_key)
-        t=CheapTransport(key,a.budget_units)
+        t=CheapTransport(key,a.budget_units,stages=PROTOCOL_STAGES)
         del key
     except (CredentialError,ControllerError):
         p.exit(1,"Local credential or budget error.\n")
-    status=0
-    try:
-        report=design(t)
-    except (ControllerError,KeyboardInterrupt):
-        report={"kind":VERSION,"status":"stopped","confirmation_authorized":False,
-                "provider":t.summary(),"note":"No retry. Check actual balance."}
-        status=1
+    def ask_review(draft):
+        # Show the actual draft and a conservative reservation before the optional charge.
+        from research_controller import SYSTEM_RULES
+        req={"system":SYSTEM_RULES,"stage":"review","data":review_data(draft)}
+        cap=PROTOCOL_STAGES[1][2]
+        reserve=units("supervisor",len(payload("supervisor",req,cap))+INPUT_MARGIN+cap)
+        print("DeepSeek estimated debit:",t.estimated)
+        print(json.dumps(draft,ensure_ascii=True,indent=2))
+        print("Optional Sol review estimated reservation:",reserve,"base units (not actual charge).")
+        if t.reserved+reserve>t.budget:
+            print("Remaining estimated budget insufficient. Keeping draft without review.")
+            return False
+        return approve("Run optional paid Sol critique?")
+    report=design(t,approve_review=ask_review)
     print("Report:",save(report,REPORT_ROOT,prefix="agent_protocol_"))
-    return status
+    return 1 if "failed_stage" in report else 0
 
 if __name__=="__main__":
     raise SystemExit(main())

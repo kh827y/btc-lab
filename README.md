@@ -134,3 +134,5 @@ DVOL completed. After update.bat, from the project folder use `.venv\Scripts\pyt
 
 ### Актуально: локальный ключ и черновик OI-протокола
 Вместо Windows Credential Manager используется `data/.cheapvibecode_key` (открытый текст, игнорируется Git). `update.bat`, `run_agent_protocol.bat`, `y`, при первом запуске ключ. Пришли JSON из `data/research/agent_protocol/`. Не отправляй файл ключа. Резерв 300000, не гарантированный расход. Только проект протокола, без запуска исследования. `--preview` без сети.
+
+**Актуально:** подтверждение `1`, отказ `0` (или Enter). `update.bat`, `run_agent_protocol.bat`: DeepSeek draft, затем отдельное предложение платной критики Sol. Можно отказаться и прислать черновик из `data/research/agent_protocol/` для ручной проверки. Старый запуск не повторять. Резерв 200000, не гарантия списания.

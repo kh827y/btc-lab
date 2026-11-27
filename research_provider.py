@@ -18,6 +18,7 @@ BASE_WEIGHTS={"supervisor":150,"worker":19}
 SURCHARGE=5
 WEIGHTS={k:v*SURCHARGE for k,v in BASE_WEIGHTS.items()}
 TARIFF_VERSION="cheap-account-x5-20261127"
+PROTOCOL_STAGES=(("worker","analyze",6144),("supervisor","review",3072))
 INPUT_MARGIN=2048
 MAX_HTTP_BYTES=512*1024
 TIMEOUT=240
@@ -89,7 +90,9 @@ def usage_from(obj):
 
 
 class CheapTransport:
-    def __init__(self,key,budget,send=None):
+    def __init__(self,key,budget,send=None,*,stages=STAGES):
+        require(stages in (STAGES,PROTOCOL_STAGES),"Unapproved host workflow")
+        self.stages=stages
         require(type(key) is str and 0<len(key)<=4096 and key.isascii() and
                 all(33<=ord(ch)<=126 for ch in key),"Invalid API key format")
         require(type(budget) is int and 0<budget<=MAX_BUDGET,"Invalid base-unit budget")
@@ -117,7 +120,7 @@ class CheapTransport:
 
     def _call(self,role,request,cap):
         i=len(self.records)
-        require(i<len(STAGES) and (role,request["stage"],cap)==STAGES[i],
+        require(i<len(self.stages) and (role,request["stage"],cap)==self.stages[i],
                 "Unapproved stage or output cap")
         raw=payload(role,request,cap)
         input_reserve=len(raw)+INPUT_MARGIN

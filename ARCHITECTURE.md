@@ -119,3 +119,5 @@ research_metadata.py — fixed local projection and preview before explicit paid
 research_credentials.py — host-only Windows Credential Manager adapter; no plaintext fallback or model access. Paid confirmation before retrieval; fixed credential target, replace/delete support. No keys in Git/report. Not a defense against malicious same-user processes.
 
 research_credentials.py now uses a project-local ignored plaintext key file instead of Windows Credential Manager. research_protocol_design.py — fixed OI protocol proposal, curated static evidence, three model calls, zero tools, strict schema, advisory only; no execution or registration.
+
+OI protocol v2 uses a second fixed host-only transport schedule (worker draft, optional supervisor critique). No plan call; saved draft remains available on review failure/decline. All paid confirmations via 1/0.

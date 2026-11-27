@@ -22,9 +22,9 @@ class Vault:
 
 class CredentialTest(unittest.TestCase):
     def test_confirmation(self):
-        for value in ("y","Y"," y "):
+        for value in ("1"," 1 "):
             self.assertTrue(approve("test",ask=lambda _:value))
-        for value in ("","n","YES","yes","1"):
+        for value in ("","0","y","Y","n","YES","yes","2"):
             self.assertFalse(approve("test",ask=lambda _:value))
 
     def test_first_save_and_reuse(self):

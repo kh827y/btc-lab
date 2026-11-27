@@ -74,7 +74,7 @@ class ProjectVault:
             raise CredentialError("Cannot remove local key file.") from None
 
 def approve(message,*,ask=input):
-    return ask(message+" [y/N]: ").strip().lower()=="y"
+    return ask(message+" [1=confirm / 0=cancel]: ").strip()=="1"
 
 def hidden_prompt():
     with warnings.catch_warnings():
