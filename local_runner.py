@@ -297,12 +297,16 @@ def listen():
             try:
                 private_repo(cfg["repo"],token)
                 attention=relay.progress(remote_read(cfg["repo"],token,"progress.json"))
-                if not attention and not relay.pending():
+                if not attention:
                     job=remote_read(cfg["repo"],token,"job.json")
-                    if job is not None:
+                    if job is None:
+                        relay.pending()
+                    else:
+                        job=validate_job(job)
                         halt=CONTROL/"needs_owner.json"
-                        if not halt.exists() or json.loads(read_bytes(halt,8192)).get("id")==job.get("id"):
-                            handle(job,cfg,token,relay)
+                        if not halt.exists() or json.loads(read_bytes(halt,8192)).get("id")==job["id"]:
+                            if not relay.pending(job["id"]):
+                                handle(job,cfg,token,relay)
             except (OSError,ValueError,KeyError,TypeError) as exc:
                 print("Poll stopped for this iteration:",type(exc).__name__,str(exc)[:180],flush=True)
             time.sleep(90)
