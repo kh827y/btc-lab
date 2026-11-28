@@ -7,6 +7,7 @@ from urllib.request import Request, urlopen
 
 from data_logic import at, parse_utc, validate_brief, is_real_number
 from live_derivatives import run as collect_derivatives
+from live_macro import collect as collect_macro
 
 URL = "https://raw.githubusercontent.com/kh827y/btc-market-data/main/btc-monitor/data/brief.json"
 ROOT = Path(__file__).resolve().parent / "data/research/state_packets"
@@ -292,9 +293,17 @@ def run(root=ROOT):
     except (OSError,ValueError,KeyError,TypeError,OverflowError) as exc:
         derivative_report={}
         provenance={"errors":{"collector":str(exc)[:300]}}
+    try:
+        macro=collect_macro(folder/"fred_direct")
+    except (OSError,ValueError,KeyError,TypeError,OverflowError) as exc:
+        macro={"version":"live-macro-v1","series":[],"error":str(exc)[:300]}
     now=datetime.now(timezone.utc)
     report=packet(data,now)
-    report["version"]="market-state-v3"
+    report["version"]="market-state-v4"
+    report["direct_macro"]=macro
+    if len(macro["series"])!=4 or any(x["status"]!="usable" for x in macro["series"]):
+        report["coverage_gaps"].append("direct_macro:partial_or_unavailable")
+    report["limitations"].append("Direct FRED/ALFRED observations are separate from upstream macro fields and retain their own dates, retrieval times and raw hashes. Do not count identical underlying series twice.")
     report["retrieved_utc"]=brief_received.isoformat()
     report["assembled_utc"]=now.isoformat()
     report["brief_sha256"]=sha(raw)
