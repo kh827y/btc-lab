@@ -1,4 +1,4 @@
-"""Fixed Windows relay for cloud and offline Sandbox checks. No remote code on host."""
+"""Fixed Windows relay for cloud and offline Docker checks. No remote code on host."""
 import base64
 import ctypes
 import getpass
@@ -18,7 +18,7 @@ from urllib.request import Request, build_opener, HTTPRedirectHandler
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 from local_relay import Relay, configure_bot
-import local_sandbox
+import local_docker
 
 ROOT = Path(r"D:\Проекты\btc-lab")
 CONTROL = ROOT / "data" / "local_runner"
@@ -218,11 +218,11 @@ def handle(job,cfg,token,relay=None):
     else:
         if job["task"]=="archive_check":
             if folder.exists():
-                result={"version":"sandbox-job-result-v1",**job,"status":"interrupted",
+                result={"version":"docker-job-result-v1",**job,"status":"interrupted",
                         "requires_owner":True,"finished_utc":utc()}
             else:
                 folder.mkdir(parents=True,exist_ok=False)
-                result=local_sandbox.run(job,folder,CONTROL,http,utc)
+                result=local_docker.run(job,folder,CONTROL,http,utc)
         else:
             result=cloud_result(job)
             if result is None:
@@ -231,9 +231,9 @@ def handle(job,cfg,token,relay=None):
     if result.get("requires_owner"):
         halt=CONTROL/"needs_owner.json"
         if not halt.exists():
-            new_bytes(halt,encoded({"id":job["id"],"utc":utc(),"reason":"Sandbox session state uncertain"}))
+            new_bytes(halt,encoded({"id":job["id"],"utc":utc(),"reason":"Docker container state uncertain"}))
         if relay:
-            relay.notify("halt-"+job["id"][:50],"🚨❗ BTC-Lab: проверь завершение песочницы. Новые проверки остановлены.")
+            relay.notify("halt-"+job["id"][:50],"🚨❗ BTC-Lab: проверь завершение контейнера Docker. Новые проверки остановлены.")
     remote_create(repo,token,result_path,result)
     print("Result:",job["id"],result["status"],flush=True)
     if relay:
@@ -244,8 +244,8 @@ def setup():
     safe_path(ROOT)
     if CONTROL.exists():
         raise ValueError("Controller already exists. Do not overwrite it automatically.")
-    print("Checking automatic Windows Sandbox session management...",flush=True)
-    local_sandbox.preflight()
+    print("Checking Docker Desktop on D:...",flush=True)
+    local_docker.preflight()
     repo=input("Private mailbox repo (kh827y/btc-lab-bridge): ").strip()
     token=getpass.getpass("Fine-grained token for mailbox ONLY (hidden): ").strip()
     if not token.startswith("github_pat_"):
@@ -255,9 +255,9 @@ def setup():
     key=secrets.token_hex(32)
     CONTROL.mkdir(parents=True,exist_ok=False)
     new_bytes(CONTROL/"controller.py",Path(__file__).read_bytes())
-    for name in ("local_relay.py","local_sandbox.py","sandbox_probe.py"):
+    for name in ("local_relay.py","local_docker.py"):
         new_bytes(CONTROL/name,safe_path(ROOT/name).read_bytes())
-    local_sandbox.install(CONTROL)
+    local_docker.install(CONTROL)
     for name in ("manifest.json","popup.html","popup.js","worker.js"):
         new_bytes(CONTROL/"browser_bridge"/name,safe_path(ROOT/"browser_bridge"/name).read_bytes())
     new_bytes(CONTROL/"config.json",encoded({"repo":repo,"relay_key":key,"telegram_chat":chat}))
@@ -266,7 +266,7 @@ def setup():
         new_bytes(CONTROL/"telegram.dpapi",dpapi(bot.encode("utf-8")))
     # This launcher is copied once into ignored local data and never auto-updated.
     new_bytes(CONTROL/"start.bat",b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I -S -B "%~dp0controller.py" listen\r\npause\r\n')
-    remote_create(repo,token,"ready.json",{"version":"sandbox-relay-v1","status":"ready",
+    remote_create(repo,token,"ready.json",{"version":"docker-relay-v1","status":"ready",
                   "tasks":sorted(TASKS),"created_utc":utc()})
     print("SETUP OK. Start data\\local_runner\\start.bat")
     print("Load unpacked in Brave:",CONTROL/"browser_bridge")
@@ -291,7 +291,7 @@ def listen():
     bot=dpapi(read_bytes(bot_path,8192),True).decode("utf-8") if bot_path.exists() else None
     relay=Relay(cfg["relay_key"],cfg["repo"],CONTROL,new_bytes,encoded,utc,bot,cfg.get("telegram_chat"))
     server=relay.start()
-    print("Listening for cloud and isolated Sandbox jobs. Ctrl+C stops polling.",flush=True)
+    print("Listening for cloud and isolated Docker jobs. Ctrl+C stops polling.",flush=True)
     try:
         while True:
             try:
