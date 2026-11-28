@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timezone, timedelta
 
-from market_state import packet, age
+from market_state import packet, age, perpetual_context
 
 NOW = datetime(2026, 11, 28, 11, tzinfo=timezone.utc)
 
@@ -66,3 +66,24 @@ class MarketStateTest(unittest.TestCase):
         self.assertEqual(item(p,"macro","treasury_2y_pct")["observed_at"],"2026-11-25")
         self.assertEqual(item(p,"derivatives","oi_notional_change_7d")["unit"],"percent USD notional")
         self.assertEqual(age("2026-11-29",NOW,NOW),(None,"future_observation"))
+
+
+class PerpetualContextTest(unittest.TestCase):
+    def test_independent_source_and_partial_windows(self):
+        d={"version":"live-derivatives-readiness-v1",
+           "market":"Binance USD-M BTCUSDT perpetual",
+           "observed_end_utc":"2026-11-28T10:00:00Z",
+           "retrieved_utc":"2026-11-28T10:50:00Z",
+           "oi_latest_checked_btc":90,"premium_last_closed_fraction":-0.001,
+           "windows":{"1":{"oi_start_btc":100,"oi_end_btc":90,
+                    "oi_checked_points":2,"oi_expected_points":25,
+                    "premium_expected_hours":24,"premium_valid_hours":23,
+                    "premium_mean_close_fraction":-0.001}}}
+        p={x["id"]:x for x in perpetual_context(d,NOW)}
+        self.assertEqual(p["oi_quantity"]["value"],90)
+        self.assertAlmostEqual(p["oi_quantity_change_1d"]["value"],-10)
+        self.assertEqual(p["oi_quantity_change_1d"]["coverage"]["valid"],2)
+        self.assertIsNone(p["premium_mean_1d"]["value"])
+        self.assertIsNone(p["oi_quantity_change_7d"]["value"])
+        self.assertTrue(all(x["value"] is None for x in perpetual_context(d,NOW+timedelta(hours=4))))
+        self.assertTrue(all(x["value"] is None for x in perpetual_context({},NOW)))
