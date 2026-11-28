@@ -9,6 +9,7 @@ import secrets
 import stat
 import sys
 import time
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError
@@ -27,6 +28,9 @@ TASKS = {"market_state", "archive_check"}
 WORKFLOW = "market_state_check.yml"
 MAX_OUTPUT = 16 * 1024 * 1024
 MAX_REPORT = 256 * 1024
+POLL_SECONDS = 15
+CLOUD_POLL_SECONDS = 75
+START_BAT = b'@echo off\r\ncd /d "%~dp0..\\\\.."\r\n.venv\\\\Scripts\\\\python.exe -I -S -B "%~dp0controller.py" listen\r\nif errorlevel 1 pause\r\n'
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 SHA = re.compile(r"[0-9a-f]{40}")
 REPO = re.compile(r"kh827y/btc-lab-bridge", re.I)
@@ -265,7 +269,7 @@ def setup():
     if bot:
         new_bytes(CONTROL/"telegram.dpapi",dpapi(bot.encode("utf-8")))
     # This launcher is copied once into ignored local data and never auto-updated.
-    new_bytes(CONTROL/"start.bat",b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I -S -B "%~dp0controller.py" listen\r\npause\r\n')
+    new_bytes(CONTROL/"start.bat",START_BAT)
     remote_create(repo,token,"ready.json",{"version":"docker-relay-v1","status":"ready",
                   "tasks":sorted(TASKS),"created_utc":utc()})
     print("SETUP OK. Start data\\local_runner\\start.bat")
@@ -291,9 +295,22 @@ def listen():
     bot=dpapi(read_bytes(bot_path,8192),True).decode("utf-8") if bot_path.exists() else None
     relay=Relay(cfg["relay_key"],cfg["repo"],CONTROL,new_bytes,encoded,utc,bot,cfg.get("telegram_chat"))
     server=relay.start()
-    print("Listening for cloud and isolated Docker jobs. Ctrl+C stops polling.",flush=True)
+    stop=threading.Event()
+    def keyboard():
+        import msvcrt
+        while not stop.wait(.2):
+            if msvcrt.kbhit():
+                key=msvcrt.getwch()
+                if key=="0":
+                    print("Stop requested. Finishing any active task safely.",flush=True)
+                    stop.set()
+                elif key=="1":
+                    print("Runner active.",flush=True)
+    threading.Thread(target=keyboard,daemon=True).start()
+    last_cloud_check=float("-inf")
+    print("Listening. 1 = keep running, 0 = stop safely (no Enter).",flush=True)
     try:
-        while True:
+        while not stop.is_set():
             try:
                 private_repo(cfg["repo"],token)
                 attention=relay.progress(remote_read(cfg["repo"],token,"progress.json"))
@@ -305,12 +322,20 @@ def listen():
                         job=validate_job(job)
                         halt=CONTROL/"needs_owner.json"
                         if not halt.exists() or json.loads(read_bytes(halt,8192)).get("id")==job["id"]:
-                            if not relay.pending(job["id"]):
-                                handle(job,cfg,token,relay)
+                            if not relay.pending(job["id"]) and not stop.is_set():
+                                # Only public Actions polling is rate-limited separately.
+                                # Already saved results and offline jobs remain responsive.
+                                local=safe_path(CONTROL/"jobs"/job["id"]/"result.json")
+                                if job["task"]!="market_state" or local.exists():
+                                    handle(job,cfg,token,relay)
+                                elif time.monotonic()-last_cloud_check>=CLOUD_POLL_SECONDS:
+                                    last_cloud_check=time.monotonic()
+                                    handle(job,cfg,token,relay)
             except (OSError,ValueError,KeyError,TypeError) as exc:
                 print("Poll stopped for this iteration:",type(exc).__name__,str(exc)[:180],flush=True)
-            time.sleep(90)
+            stop.wait(POLL_SECONDS)
     finally:
+        stop.set()
         server.shutdown()
         server.server_close()
         mutex.CloseHandle(lock)
