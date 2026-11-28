@@ -43,6 +43,61 @@ def age(observed, now, cutoff):
     return (now - t).total_seconds() / 3600, "timestamp"
 
 
+def demand_context(data, families):
+    """Non-overlapping spot totals and reported ETF session signs, not a signal."""
+    spot = {x["id"]: x for x in families["spot"]}
+    result = {"version":"demand-context-v1","spot":{},"etf":{},
+              "limitations":["Spot baskets overlap; not independent confirmations.",
+                  "Mixed trade/receive-hour basis remains inherited; no per-venue or per-day breadth inferred.",
+                  "Net taker notional is not capital inflow; ETF flows are distinct.",
+                  "ETF counts describe reported sessions, not a verified exchange calendar."]}
+    for basket, venues, prefix in (
+        ("original_five","binance,coinbase,okx,bybit,kraken","original_five"),
+        ("ex_coinbase","binance,okx,bybit,kraken,bitget","fixed_ex_coinbase")):
+        recent, week = (spot[basket+"_"+w] for w in ("24h","168h"))
+        records = (recent, week)
+        keys = ["BTC spot taker executed|"+venues+"|"+w+"|USD~USDT|exchange-trade-or-received-UTC-hours"
+                for w in ("24h","168h")]
+        endpoint = parse_utc(recent["observed_at"])
+        valid = (endpoint is not None and endpoint == parse_utc(week["observed_at"])
+                 and endpoint.minute == endpoint.second == endpoint.microsecond == 0
+                 and all(x["status"]=="usable" and x["comparison_key"]==key
+                         and x["unit"]=="approx USD" and is_real_number(x["value"])
+                         for x,key in zip(records,keys)))
+        item = {"status":"usable" if valid else "incompatible_or_unavailable_windows",
+                "observed_end_utc":endpoint.isoformat() if valid else None,
+                "last_24h_usd_approx":recent["value"] if valid else None,
+                "prior_144h_usd_approx":week["value"]-recent["value"] if valid else None,
+                "prior_144h_mean_per_24h_usd_approx":(week["value"]-recent["value"])/6 if valid else None,
+                "venues":venues.split(","),"source_fields":[x["source_field"] for x in records],
+                "input_comparison_keys":[x["comparison_key"] for x in records],
+                "note":"Subtract aligned nested totals; no daily persistence or venue breadth inferred."}
+        result["spot"][basket]=item
+    e = {x["id"]:x for x in families["etf"]}
+    latest, five = e["latest"],e["5_sessions"]
+    pos=at(data,"us_spot_bitcoin_etf.five_sessions_positive")
+    neg=at(data,"us_spot_bitcoin_etf.five_sessions_negative")
+    day=at(data,"us_spot_bitcoin_etf.latest_session_date")
+    valid=(latest["status"]==five["status"]=="usable" and
+           latest["observed_at"]==five["observed_at"]==day and
+           latest["comparison_key"]==five["comparison_key"]=="macro|spot_etf_flow" and
+           at(data,"us_spot_bitcoin_etf.US_spot_only") is True and
+           at(data,"us_spot_bitcoin_etf.not_intraday") is True and
+           type(pos) is int and type(neg) is int and 0<=pos<=5 and 0<=neg<=5 and pos+neg<=5)
+    if valid:
+        a,b=latest["value"],five["value"]
+        valid=not ((a>0 or b>0) and pos==0 or (a<0 or b<0) and neg==0 or
+                   pos==5 and (a<=0 or b<=0) or neg==5 and (a>=0 or b>=0))
+    result["etf"]={"status":"usable" if valid else "incompatible_or_unavailable_counts",
+        "latest_reported_session":day if valid else None,
+        "positive_sessions":pos if valid else None,"negative_sessions":neg if valid else None,
+        "remaining_sessions_not_classified":5-pos-neg if valid else None,
+        "prior_4_reported_sessions_net_usd":five["value"]-latest["value"] if valid else None,
+        "source_fields":["us_spot_bitcoin_etf.five_sessions_positive","us_spot_bitcoin_etf.five_sessions_negative",
+                         latest["source_field"],five["source_field"]]}
+    return result
+
+
 def packet(data, now):
     validate_brief(data)
     cutoff = parse_utc(data["as_of_utc"])
@@ -159,6 +214,7 @@ def packet(data, now):
             "as_of_utc":data["as_of_utc"], "retrieved_utc":now.isoformat(),
             "snapshot_age_h":round(snapshot_age,2), "families":families,
             "technical_context":technical_context,
+            "demand_context":demand_context(data,families),
             "coverage_gaps":data.get("coverage_gaps",[]),
             "not_in_packet":["OI quantity and perpetual premium history not available in selected brief fields",
                 "News, expectations and publication-time verification not collected here",
@@ -238,7 +294,7 @@ def run(root=ROOT):
         provenance={"errors":{"collector":str(exc)[:300]}}
     now=datetime.now(timezone.utc)
     report=packet(data,now)
-    report["version"]="market-state-v2"
+    report["version"]="market-state-v3"
     report["retrieved_utc"]=brief_received.isoformat()
     report["assembled_utc"]=now.isoformat()
     report["brief_sha256"]=sha(raw)
