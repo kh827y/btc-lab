@@ -56,3 +56,8 @@ class StateComparisonTest(unittest.TestCase):
         self.assertEqual(r["quote"]["observation_gap_days"],1)
         self.assertIsNone(r["quote"]["observation_gap_hours"])
         self.assertEqual(r["new"]["status"],"metric_added_or_removed")
+
+    def test_future_time(self):
+        a,b=fixture()
+        b["families"]["price"][0]["observed_at"]="2026-11-28T15:00:00Z"
+        self.assertEqual(compare(a,b)["metrics"][0]["status"],"future_observation")
