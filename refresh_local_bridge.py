@@ -36,7 +36,8 @@ def main():
                ("local_docker.py",read_bytes(ROOT/"local_docker.py",128*1024)),
                ("start.bat",START_BAT),
                ("browser_bridge/worker.js",read_bytes(ROOT/"browser_bridge"/"worker.js",128*1024)),
-               ("browser_bridge/popup.js",read_bytes(ROOT/"browser_bridge"/"popup.js",128*1024))]
+               ("browser_bridge/popup.js",read_bytes(ROOT/"browser_bridge"/"popup.js",128*1024)),
+               ("browser_bridge/popup.html",read_bytes(ROOT/"browser_bridge"/"popup.html",128*1024))]
         for name,raw in files:
             if name.endswith(".py"):
                 compile(raw,name,"exec")
