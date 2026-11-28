@@ -18,6 +18,8 @@ MIN_START=3*GIB
 MIN_DURING=2*GIB
 MAX_RUNTIME=384*1024**2
 
+BOOT_CMD="@echo off\r\necho BTC-Lab Sandbox diagnostic\r\nif not exist C:\\btc_output\\ (\r\n    echo ERROR: output mapping is missing.\r\n    exit /b 1\r\n)\r\necho Logon command started>C:\\btc_output\\boot.log\r\nif exist C:\\btc_python\\python.exe (echo Python executable exists>>C:\\btc_output\\boot.log) else (echo Python executable missing>>C:\\btc_output\\boot.log)\r\nif exist C:\\btc_code\\sandbox_guest_probe.py (echo Probe script exists>>C:\\btc_output\\boot.log) else (echo Probe script missing>>C:\\btc_output\\boot.log)\r\nif exist C:\\btc_archive\\ (echo Archive mapping exists>>C:\\btc_output\\boot.log) else (echo Archive mapping missing>>C:\\btc_output\\boot.log)\r\nif exist C:\\btc_canary\\read-me.txt (echo Canary exists>>C:\\btc_output\\boot.log) else (echo Canary missing>>C:\\btc_output\\boot.log)\r\nC:\\btc_python\\python.exe -I -B -X utf8 C:\\btc_code\\sandbox_guest_probe.py >>C:\\btc_output\\boot.log 2>&1\r\nset \"RC=%ERRORLEVEL%\"\r\necho Python exit code: %RC%>>C:\\btc_output\\boot.log\r\ntype C:\\btc_output\\boot.log\r\necho %RC%>C:\\btc_output\\boot.done\r\necho Diagnostic finished. Close Sandbox after the host report is ready.\r\n"
+
 def plain(path):
     path=Path(path)
     for p in [*reversed(path.parents),path]:
@@ -104,7 +106,7 @@ def configuration(runtime_dir,code,canary,archive,out):
         ET.SubElement(m,"SandboxFolder").text=guest
         ET.SubElement(m,"ReadOnly").text="true" if ro else "false"
     command=ET.SubElement(config,"LogonCommand")
-    ET.SubElement(command,"Command").text=r"C:\btc_python\python.exe -I -B C:\btc_code\sandbox_guest_probe.py"
+    ET.SubElement(command,"Command").text=r"C:\Windows\System32\cmd.exe /d /k C:\btc_code\probe.cmd"
     return ET.tostring(config,encoding="utf-8",xml_declaration=True)
 
 def run():
@@ -123,6 +125,7 @@ def run():
         under(p).mkdir(exist_ok=False)
     size=runtime(rt)
     write(code/"sandbox_guest_probe.py",under(ROOT/"sandbox_guest_probe.py").read_bytes())
+    write(code/"probe.cmd",BOOT_CMD.encode("ascii"))
     write(canary/"read-me.txt",b"BTC-Lab isolation probe")
     config=session/"probe.wsb"
     write(config,configuration(rt,code,canary,ARCHIVE,out))
@@ -136,12 +139,16 @@ def run():
     deadline=time.monotonic()+180
     minimum=before_launch
     result=out/"probe.json"
+    done=out/"boot.done"
     while time.monotonic()<deadline:
         free=free_c()
         minimum=min(minimum,free)
         if free<MIN_DURING:
             print("WARNING: C: below 2 GiB. CLOSE WINDOWS SANDBOX NOW.",flush=True)
             ctypes.windll.user32.MessageBoxW(None,"Less than 2 GiB free on C:. Close Windows Sandbox now.","BTC-Lab",0x30|0x40000)
+            break
+        if done.is_file():
+            print("Guest launcher finished. Exit code:",under(done).read_text(encoding="ascii",errors="replace")[:40].strip(),flush=True)
             break
         if result.is_file():
             try:
@@ -150,8 +157,7 @@ def run():
                 obj=json.loads(result.read_text(encoding="utf-8"))
                 if obj.get("version")!="sandbox-probe-v1":
                     raise ValueError("Unexpected report version")
-                print("Sandbox report received:",obj.get("status"),flush=True)
-                break
+                # Wait for the launcher completion marker to capture startup diagnostics.
             except json.JSONDecodeError:
                 pass
         time.sleep(1)
@@ -162,7 +168,12 @@ def run():
           "c_free_before_bytes":before,"c_free_before_launch_bytes":before_launch,
           "c_min_during_bytes":minimum,"c_free_at_end_bytes":free_c(),
           "canary_unexpected_write":(canary/"unexpected-write.txt").exists(),
-          "guest_report":None}
+          "guest_report":None,"guest_boot_log":None,"guest_exit_code":None}
+    for name,key,limit in (("boot.log","guest_boot_log",16384),("boot.done","guest_exit_code",64)):
+        p=out/name
+        if p.is_file():
+            with under(p).open("rb") as f:
+                host[key]=f.read(limit).decode("utf-8",errors="replace").strip()
     if result.is_file() and under(result).stat().st_size<=16384:
         try:
             host["guest_report"]=json.loads(result.read_text(encoding="utf-8"))
