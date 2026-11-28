@@ -29,8 +29,12 @@ def main():
         cfg["relay_key"]=secrets.token_hex(32)
         nonce=secrets.token_hex(8)
         files=[("local_relay.py",read_bytes(ROOT/"local_relay.py",128*1024)),
-               ("browser_bridge/worker.js",read_bytes(ROOT/"browser_bridge"/"worker.js",128*1024))]
-        compile(files[0][1],"local_relay.py","exec")
+               ("controller.py",read_bytes(ROOT/"local_runner.py",128*1024)),
+               ("browser_bridge/worker.js",read_bytes(ROOT/"browser_bridge"/"worker.js",128*1024)),
+               ("browser_bridge/popup.js",read_bytes(ROOT/"browser_bridge"/"popup.js",128*1024))]
+        for name,raw in files:
+            if name.endswith(".py"):
+                compile(raw,name,"exec")
         backup=CONTROL/"bridge_backups"/nonce
         staged=[]
         for name,raw in files+[("config.json",encoded(cfg))]:
