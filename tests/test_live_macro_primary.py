@@ -29,3 +29,12 @@ class PrimaryMacroTest(unittest.TestCase):
             broad(raw.replace(b"Broad",b"Advanced"),DAY)
         with self.assertRaises(ValueError):
             broad(raw.replace(b"20-NOV",b"29-NOV"),DAY)
+
+
+    def test_broad_nested_layout_and_header(self):
+        table=b'<table><tr><th colspan="2">History</th></tr><tr><th>DATE</th><th> Rate </th></tr><tr><td>20-NOV-26</td><td>123.5978</td></tr></table>'
+        prefix=b'<h5>Nominal Broad Dollar Index - Daily Index</h5>'
+        raw=prefix+b'<table><tr><td>'+table+b'</td></tr></table>'
+        self.assertEqual(broad(raw,DAY),{date(2026,11,20):123.5978})
+        with self.assertRaisesRegex(ValueError,"Ambiguous H.10 table"):
+            broad(prefix+table+table,DAY)
