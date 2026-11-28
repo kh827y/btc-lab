@@ -25,9 +25,9 @@ MIN_C=2*1024**3
 MIN_D=512*1024**2
 TIMEOUT=300
 TEST_PACKAGES=('streamlit==1.67.0','plotly==6.9.0','pandas==3.1.1','tzdata==2026.6','numpy==2.5.5')
-TEST_IMAGE_FILE='test_image.txt'
-TEST_TAG='btc-lab-unit:v1'
-BASE_TAG='btc-lab-test-base:v1'
+TEST_IMAGE_FILE='test_image_v2.txt'
+TEST_TAG='btc-lab-unit:v2'
+BASE_TAG='btc-lab-test-base:v2'
 MAX_CODE=16*1024*1024
 
 def under(path):
@@ -95,17 +95,25 @@ def prepare_test_image(control):
         if re.fullmatch(r"sha256:[0-9a-f]{64}",image) and docker("image","inspect",image,"--format","{{.Id}}")==image:
             return
         raise ValueError("Existing test image pin is invalid; owner review required")
-    base=under(control/"docker_image.txt").read_text(encoding="ascii").strip()
+    # Reuse the previous pinned dependency layer when it exists. Never delete
+    # or modify the earlier image or pin; a fresh setup can build from Python.
+    previous=under(control/"test_image.txt")
+    reuse=previous.is_file()
+    base=under(previous if reuse else control/"docker_image.txt").read_text(encoding="ascii").strip()
     if not re.fullmatch(r"sha256:[0-9a-f]{64}",base) or docker("image","inspect",base,"--format","{{.Id}}")!=base:
-        raise ValueError("Expected installed pinned Python base")
+        raise ValueError("Expected installed pinned base image")
     docker("tag",base,BASE_TAG)
     context=under(control/"test_build"/uuid.uuid4().hex)
     context.mkdir(parents=True,exist_ok=False)
-    # Only this fixed Dockerfile enters the build; no host files, tokens or remote code.
-    spec=("FROM "+BASE_TAG+"\nRUN python -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all: "
-          +" ".join(TEST_PACKAGES)+" && python -m pip check\n")
+    # Fixed build context only. Git is needed by the two frozen-lock tests.
+    spec=("FROM "+BASE_TAG+"\n"
+          "RUN apt-get update && apt-get install -y --no-install-recommends git "
+          "&& rm -rf /var/lib/apt/lists/* && git --version\n")
+    if not reuse:
+        spec+=("RUN python -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all: "
+               +" ".join(TEST_PACKAGES)+" && python -m pip check\n")
     write(context/"Dockerfile",spec.encode("ascii"))
-    print("Preparing one-time test image (public Python wheels, no project data)...",flush=True)
+    print("Preparing test image v2 (Git and public dependencies, no project data)...",flush=True)
     subprocess.run(command("build","--pull=false","--tag",TEST_TAG,str(context)),
                    cwd=ROOT,stdin=subprocess.DEVNULL,check=True,timeout=900)
     image=docker("image","inspect",TEST_TAG,"--format","{{.Id}}")
@@ -181,7 +189,7 @@ def create_args(name,code,image,task="archive_check"):
     if task=="archive_check":
         return args+["--mount","type=bind,source="+str(under(ARCHIVE))+",target=/archive,readonly",
                      "--workdir","/app",image,"python","-I","-S","-B","-u","/app/docker_archive_task.py"]
-    return args+["--env","OPENBLAS_NUM_THREADS=1","--env","OMP_NUM_THREADS=1",
+    return args+["--env","OPENBLAS_NUM_THREADS=1","--env","OMP_NUM_THREADS=1","--env","HOME=/tmp",
                  "--workdir","/app",image,"python","-I","-B","-u","/app/docker_unit_task.py"]
 
 def attach(cid):
