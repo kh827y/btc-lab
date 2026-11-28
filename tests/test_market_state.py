@@ -87,3 +87,50 @@ class PerpetualContextTest(unittest.TestCase):
         self.assertIsNone(p["oi_quantity_change_7d"]["value"])
         self.assertTrue(all(x["value"] is None for x in perpetual_context(d,NOW+timedelta(hours=4))))
         self.assertTrue(all(x["value"] is None for x in perpetual_context({},NOW)))
+
+
+class DemandContextTest(unittest.TestCase):
+    def data(self):
+        d=fixture()
+        for prefix,venues,field in (
+            ("original_five","binance,coinbase,okx,bybit,kraken","net_usd_approx"),
+            ("fixed_ex_coinbase","binance,okx,bybit,kraken,bitget","fixed_five_ex_coinbase")):
+            for w,value in (("24h",-20),("168h",40)):
+                d["metric_quality"]["checks"]["spot_cvd."+prefix+"."+w]={
+                    "status":"usable","observed_at":"2026-11-28T09:00:00Z",
+                    "comparison_key":"BTC spot taker executed|"+venues+"|"+w+"|USD~USDT|exchange-trade-or-received-UTC-hours"}
+                row=d["spot_cvd"]["windows"].setdefault(w,{})
+                if field=="net_usd_approx":
+                    row[field]=value
+                else:
+                    row[field]={"net_usd_approx":value*2}
+        d["metric_quality"]["checks"]["macro.spot_etf_flow"]={
+            "status":"usable","observed_at":"2026-11-27","comparison_key":"macro|spot_etf_flow"}
+        d["us_spot_bitcoin_etf"]={"status":"usable","latest_session_date":"2026-11-27",
+            "net_flow_usd":-10,"five_sessions_net_flow_usd":-60,
+            "five_sessions_positive":1,"five_sessions_negative":3,"US_spot_only":True,"not_intraday":True}
+        return d
+
+    def test_nested_windows_and_counts(self):
+        c=packet(self.data(),NOW)["demand_context"]
+        self.assertEqual(c["spot"]["original_five"]["prior_144h_usd_approx"],60)
+        self.assertEqual(c["spot"]["original_five"]["prior_144h_mean_per_24h_usd_approx"],10)
+        self.assertEqual(c["spot"]["ex_coinbase"]["prior_144h_usd_approx"],120)
+        self.assertEqual(c["etf"]["prior_4_reported_sessions_net_usd"],-50)
+        self.assertEqual(c["etf"]["remaining_sessions_not_classified"],1)
+
+    def test_incompatible_and_missing_fail_closed(self):
+        for key,value in (("observed_at","2026-11-28T08:00:00Z"),("comparison_key","changed basket"),("status","incomplete")):
+            d=self.data()
+            d["metric_quality"]["checks"]["spot_cvd.original_five.168h"][key]=value
+            c=packet(d,NOW)["demand_context"]
+            self.assertIsNone(c["spot"]["original_five"]["prior_144h_usd_approx"])
+            self.assertEqual(c["spot"]["ex_coinbase"]["prior_144h_usd_approx"],120)
+        for pos,neg in ((3,3),(True,3),(5,0),(0,0)):
+            d=self.data()
+            d["us_spot_bitcoin_etf"].update(five_sessions_positive=pos,five_sessions_negative=neg)
+            self.assertIsNone(packet(d,NOW)["demand_context"]["etf"]["negative_sessions"])
+        d=self.data()
+        del d["us_spot_bitcoin_etf"]["five_sessions_positive"]
+        self.assertIsNone(packet(d,NOW)["demand_context"]["etf"]["prior_4_reported_sessions_net_usd"])
+        self.assertIsNone(packet(self.data(),NOW+timedelta(hours=4))["demand_context"]["spot"]["original_five"]["prior_144h_usd_approx"])
