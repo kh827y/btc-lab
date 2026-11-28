@@ -15,7 +15,7 @@ async function composerAction(expected,text=null){
   const visible=e=>!!e&&e.isConnected&&e.getClientRects().length>0&&
     getComputedStyle(e).visibility==="visible"&&
     !e.closest('[hidden],[inert],[aria-hidden="true"]');
-  const stopping=()=>[...document.querySelectorAll('[data-testid="stop-button"],button[aria-label="Stop generating"],button[aria-label="Остановить генерацию"],[data-composer-footer-responsive] button[aria-label="Остановить"],[data-composer-footer-responsive] button[aria-label="Stop"]')].some(visible);
+  const stopSelector='button[data-testid="stop-button"],button[aria-label="Stop generating"],button[aria-label="Остановить генерацию"],button[aria-label="Остановить"],button[aria-label="Stop"]';
   const editable=e=>visible(e)&&(e.isContentEditable||e.tagName==="TEXTAREA")&&
     !e.disabled&&!e.readOnly&&!e.closest('[aria-disabled="true"]');
   const editors='textarea,[contenteditable="true"],[contenteditable="plaintext-only"]';
@@ -40,6 +40,15 @@ async function composerAction(expected,text=null){
       {p:null,state:candidates.length?"composer_ambiguous":
       "composer_unavailable (anchors="+document.querySelectorAll(anchors).length+
       ", forms="+document.querySelectorAll('form').length+")"};
+  };
+  const scopeOf=p=>p?.closest("[data-composer-footer-responsive]")||p?.closest("form");
+  // Ignore controls outside the current composer, e.g. retained message controls.
+  // If the editor is temporarily absent, remain conservative and wait for a visible
+  // generation stop control, rather than attempting to send.
+  const stopping=()=>{
+    const p=findEditor().p;
+    const scope=scopeOf(p);
+    return [...(scope||document).querySelectorAll(stopSelector)].some(e=>visible(e)&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
   };
   const draft=p=>(p.value??p.innerText??"").trim();
   if(stopping())return "busy";
@@ -93,7 +102,7 @@ async function poll(){
   const state=await inject(s.tabId,composerAction,[s.url]);
   if(!event.id){await chrome.storage.local.set({status:state==="ready"?"Поле ввода найдено. Ожидаю задание.":"Проверка поля ввода: "+state});return;}
   if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(event.id)||typeof event.message!=="string"||event.message.length>1200)throw Error("Invalid event");
-  if(state==="busy"||state==="draft_exists"){await chrome.storage.local.set({status:"Ожидаю: "+state});return;}
+  if(state==="busy"||state==="draft_exists"){await chrome.storage.local.set({status:"Ожидаю: "+state+" ("+event.id+")"});return;}
   if(state!=="ready"){
     const grant=await api(s.key,"/claim",{id:event.id});
     if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});
