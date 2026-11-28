@@ -24,7 +24,7 @@ import local_docker
 ROOT = Path(r"D:\Проекты\btc-lab")
 CONTROL = ROOT / "data" / "local_runner"
 OFFICIAL = "kh827y/btc-lab"
-TASKS = {"market_state", "archive_check"}
+TASKS = {"market_state", "archive_check", "unit_tests"}
 WORKFLOW = "market_state_check.yml"
 MAX_OUTPUT = 16 * 1024 * 1024
 MAX_REPORT = 256 * 1024
@@ -220,7 +220,7 @@ def handle(job,cfg,token,relay=None):
         if any(result.get(k)!=v for k,v in job.items()):
             raise ValueError("Local result ID collision")
     else:
-        if job["task"]=="archive_check":
+        if job["task"] in ("archive_check","unit_tests"):
             if folder.exists():
                 result={"version":"docker-job-result-v1",**job,"status":"interrupted",
                         "requires_owner":True,"finished_utc":utc()}
