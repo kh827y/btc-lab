@@ -1,4 +1,4 @@
-"""Fixed Windows relay for cloud checks. Never execute remote project code locally."""
+"""Fixed Windows relay for cloud and offline Sandbox checks. No remote code on host."""
 import base64
 import ctypes
 import getpass
@@ -18,11 +18,12 @@ from urllib.request import Request, build_opener, HTTPRedirectHandler
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 from local_relay import Relay, configure_bot
+import local_sandbox
 
 ROOT = Path(r"D:\Проекты\btc-lab")
 CONTROL = ROOT / "data" / "local_runner"
 OFFICIAL = "kh827y/btc-lab"
-TASKS = {"market_state"}
+TASKS = {"market_state", "archive_check"}
 WORKFLOW = "market_state_check.yml"
 MAX_OUTPUT = 16 * 1024 * 1024
 MAX_REPORT = 256 * 1024
@@ -159,7 +160,8 @@ def validate_job(job):
         raise ValueError("Job must contain exactly id, commit and task")
     if not all(isinstance(job[k],str) for k in job):
         raise ValueError("Invalid job types")
-    if not ID.fullmatch(job["id"]) or not SHA.fullmatch(job["commit"]) or job["task"] not in TASKS:
+    if (not ID.fullmatch(job["id"]) or re.fullmatch(r"(?i:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])",job["id"])
+            or not SHA.fullmatch(job["commit"]) or job["task"] not in TASKS):
         raise ValueError("Job not on fixed allowlist")
     return job
 
@@ -214,12 +216,26 @@ def handle(job,cfg,token,relay=None):
         if any(result.get(k)!=v for k,v in job.items()):
             raise ValueError("Local result ID collision")
     else:
-        result=cloud_result(job)
-        if result is None:
-            return
+        if job["task"]=="archive_check":
+            if folder.exists():
+                result={"version":"sandbox-job-result-v1",**job,"status":"interrupted",
+                        "requires_owner":True,"finished_utc":utc()}
+            else:
+                folder.mkdir(parents=True,exist_ok=False)
+                result=local_sandbox.run(job,folder,CONTROL,http,utc)
+        else:
+            result=cloud_result(job)
+            if result is None:
+                return
         new_bytes(local,encoded(result))
+    if result.get("requires_owner"):
+        halt=CONTROL/"needs_owner.json"
+        if not halt.exists():
+            new_bytes(halt,encoded({"id":job["id"],"utc":utc(),"reason":"Sandbox session state uncertain"}))
+        if relay:
+            relay.notify("halt-"+job["id"][:50],"🚨❗ BTC-Lab: проверь завершение песочницы. Новые проверки остановлены.")
     remote_create(repo,token,result_path,result)
-    print("Cloud result:",job["id"],result["status"],flush=True)
+    print("Result:",job["id"],result["status"],flush=True)
     if relay:
         relay.publish(job,result)
 
@@ -228,6 +244,8 @@ def setup():
     safe_path(ROOT)
     if CONTROL.exists():
         raise ValueError("Controller already exists. Do not overwrite it automatically.")
+    print("Checking automatic Windows Sandbox session management...",flush=True)
+    local_sandbox.preflight()
     repo=input("Private mailbox repo (kh827y/btc-lab-bridge): ").strip()
     token=getpass.getpass("Fine-grained token for mailbox ONLY (hidden): ").strip()
     if not token.startswith("github_pat_"):
@@ -237,7 +255,9 @@ def setup():
     key=secrets.token_hex(32)
     CONTROL.mkdir(parents=True,exist_ok=False)
     new_bytes(CONTROL/"controller.py",Path(__file__).read_bytes())
-    new_bytes(CONTROL/"local_relay.py",safe_path(ROOT/"local_relay.py").read_bytes())
+    for name in ("local_relay.py","local_sandbox.py","sandbox_probe.py"):
+        new_bytes(CONTROL/name,safe_path(ROOT/name).read_bytes())
+    local_sandbox.install(CONTROL)
     for name in ("manifest.json","popup.html","popup.js","worker.js"):
         new_bytes(CONTROL/"browser_bridge"/name,safe_path(ROOT/"browser_bridge"/name).read_bytes())
     new_bytes(CONTROL/"config.json",encoded({"repo":repo,"relay_key":key,"telegram_chat":chat}))
@@ -245,9 +265,9 @@ def setup():
     if bot:
         new_bytes(CONTROL/"telegram.dpapi",dpapi(bot.encode("utf-8")))
     # This launcher is copied once into ignored local data and never auto-updated.
-    new_bytes(CONTROL/"start.bat",b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I "%~dp0controller.py" listen\r\npause\r\n')
-    remote_create(repo,token,"ready.json",{"version":"cloud-relay-v1","status":"ready",
-                  "tasks":list(TASKS),"created_utc":utc()})
+    new_bytes(CONTROL/"start.bat",b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I -S -B "%~dp0controller.py" listen\r\npause\r\n')
+    remote_create(repo,token,"ready.json",{"version":"sandbox-relay-v1","status":"ready",
+                  "tasks":sorted(TASKS),"created_utc":utc()})
     print("SETUP OK. Start data\\local_runner\\start.bat")
     print("Load unpacked in Brave:",CONTROL/"browser_bridge")
     print("Local extension pairing key (do not send to anyone):",key)
@@ -271,7 +291,7 @@ def listen():
     bot=dpapi(read_bytes(bot_path,8192),True).decode("utf-8") if bot_path.exists() else None
     relay=Relay(cfg["relay_key"],cfg["repo"],CONTROL,new_bytes,encoded,utc,bot,cfg.get("telegram_chat"))
     server=relay.start()
-    print("Listening for cloud results. No remote code runs on this PC. Ctrl+C stops polling.",flush=True)
+    print("Listening for cloud and isolated Sandbox jobs. Ctrl+C stops polling.",flush=True)
     try:
         while True:
             try:
@@ -280,7 +300,9 @@ def listen():
                 if not attention and not relay.pending():
                     job=remote_read(cfg["repo"],token,"job.json")
                     if job is not None:
-                        handle(job,cfg,token,relay)
+                        halt=CONTROL/"needs_owner.json"
+                        if not halt.exists() or json.loads(read_bytes(halt,8192)).get("id")==job.get("id"):
+                            handle(job,cfg,token,relay)
             except (OSError,ValueError,KeyError,TypeError) as exc:
                 print("Poll stopped for this iteration:",type(exc).__name__,str(exc)[:180],flush=True)
             time.sleep(90)
