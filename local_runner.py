@@ -1,18 +1,14 @@
-"""Owner-installed local controller. Never import or run downloaded Python on Windows."""
+"""Fixed Windows relay for cloud checks. Never execute remote project code locally."""
 import base64
 import ctypes
 import getpass
-import hashlib
 import json
 import os
 import re
 import secrets
 import stat
-import subprocess
 import sys
-import threading
 import time
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError
@@ -26,17 +22,13 @@ from local_relay import Relay, configure_bot
 ROOT = Path(r"D:\Проекты\btc-lab")
 CONTROL = ROOT / "data" / "local_runner"
 OFFICIAL = "kh827y/btc-lab"
-DOCKER = Path(r"C:\Program Files\Docker\Docker\resources\bin\docker.exe")
-IMAGE = "python:3.12-slim"
-TASKS = {"market_state": ("market_state.py", "data_logic.py", "live_derivatives.py")}
+TASKS = {"market_state"}
+WORKFLOW = "market_state_check.yml"
 MAX_OUTPUT = 16 * 1024 * 1024
 MAX_REPORT = 256 * 1024
-MARKER = b"\nBTC_LAB_RESULT_V1 "
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 SHA = re.compile(r"[0-9a-f]{40}")
 REPO = re.compile(r"kh827y/btc-lab-bridge", re.I)
-STAMP = r"[0-9]{8}T[0-9]{12}Z"
-OUTPUT_PATH = re.compile(r"state/"+STAMP+r"/(?:brief\.json|market_state\.json|binance_perpetual/"+STAMP+r"/(?:oi_[0-9]+\.json|mark\.json|premium\.json|derivatives_readiness\.json))")
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -172,165 +164,43 @@ def validate_job(job):
     return job
 
 
-def docker(*args, timeout=30):
-    return subprocess.run([str(DOCKER),"--context","desktop-linux",*args],
-        cwd=ROOT,check=True,capture_output=True,text=True,timeout=timeout).stdout.strip()
+def cloud_result(job, fetch=http):
+    """Accept only completed push runs of the fixed workflow on official main."""
+    url=("https://api.github.com/repos/"+OFFICIAL+"/actions/workflows/"+WORKFLOW+
+         "/runs?event=push&branch=main&head_sha="+job["commit"]+"&per_page=20")
+    doc=json.loads(fetch(url))
+    runs=doc.get("workflow_runs")
+    if not isinstance(runs,list):
+        raise ValueError("Unexpected workflow response")
+    matches=[x for x in runs if x.get("head_sha")==job["commit"]
+             and x.get("head_branch")=="main" and x.get("event")=="push"
+             and x.get("path","").split("@")[0]==".github/workflows/"+WORKFLOW]
+    if not matches:
+        return None
+    run=max(matches,key=lambda x:x["id"])
+    if run.get("status")!="completed":
+        return None
+    rid=run["id"]
+    if type(rid) is not int or rid<=0:
+        raise ValueError("Invalid run id")
+    conclusion=run.get("conclusion")
+    if not isinstance(conclusion,str):
+        raise ValueError("Missing workflow conclusion")
+    return {"version":"cloud-check-result-v1",**job,
+            "status":"ok" if conclusion=="success" else "error",
+            "conclusion":conclusion,"run_id":rid,
+            "run_url":"https://github.com/"+OFFICIAL+"/actions/runs/"+str(rid),
+            "finished_utc":run.get("updated_at"),
+            "note":"Read workflow job logs and market-state artifact via GitHub. No local code executed."}
 
 
-def local_docker():
-    if not DOCKER.is_file():
-        raise ValueError("Install Docker Desktop at its default location first")
-    endpoint=docker("context","inspect","desktop-linux","--format","{{.Endpoints.docker.Host}}")
-    if endpoint.lower()!="npipe:////./pipe/dockerdesktoplinuxengine":
-        raise ValueError("Docker context is not the expected local Linux engine")
-    if docker("version","--format","{{.Server.Os}}")!="linux":
-        raise ValueError("Docker Desktop must run Linux containers")
-
-
-# Only public, explicitly selected source files are staged. No git pull, no hooks,
-# no existing worktree/data/venv/credentials are exposed to the container.
-def stage(job, folder):
-    compare=json.loads(http("https://api.github.com/repos/"+OFFICIAL+"/compare/"+job["commit"]+"...main",
-                            limit=8*1024*1024))
-    if compare.get("status") not in ("ahead","identical") or compare.get("merge_base_commit",{}).get("sha")!=job["commit"]:
-        raise ValueError("Requested commit is not an ancestor of official main")
-    code=folder/"code"
-    safe_path(code).mkdir(exist_ok=False)
-    for name in TASKS[job["task"]]:
-        raw=http("https://raw.githubusercontent.com/"+OFFICIAL+"/"+job["commit"]+"/"+name,limit=256*1024)
-        new_bytes(code/name,raw)
-    return code
-
-
-WRAPPER = r"""
-import base64,json,sys
-from pathlib import Path
-sys.path.insert(0,"/app")
-import market_state
-market_state.run(root=Path("/scratch/state"))
-files={}
-total=0
-for p in Path("/scratch/state").rglob("*"):
-    if p.is_symlink():
-        raise ValueError("Unexpected symlink")
-    if p.is_file():
-        raw=p.read_bytes()
-        total+=len(raw)
-        if total>10*1024*1024 or len(files)>=16:
-            raise ValueError("Too much output")
-        files[p.relative_to("/scratch").as_posix()]=base64.b64encode(raw).decode("ascii")
-print("\nBTC_LAB_RESULT_V1 "+json.dumps(files,separators=(",",":")),flush=True)
-"""
-
-
-def container_run(code, image):
-    local_docker()
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}",image):
-        raise ValueError("Expected pinned local Docker image")
-    name="btc-lab-"+uuid.uuid4().hex
-    cmd=[str(DOCKER),"--context","desktop-linux","run","--rm","--name",name,"--pull","never",
-         "--read-only","--cap-drop","ALL","--security-opt","no-new-privileges",
-         "--user","65534:65534","--pids-limit","64","--memory","384m","--cpus","1",
-         "--log-driver","none","--network","bridge",
-         "--tmpfs","/tmp:rw,noexec,nosuid,size=16m,mode=1777",
-         "--tmpfs","/scratch:rw,noexec,nosuid,size=32m,mode=1777",
-         "--mount","type=bind,source="+str(safe_path(code))+",target=/app,readonly",
-         "--workdir","/app",image,"python","-I","-B","-u","-c",WRAPPER]
-    p=subprocess.Popen(cmd,cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    buf=bytearray()
-    overflow=threading.Event()
-    def drain():
-        while True:
-            chunk=p.stdout.read(65536)
-            if not chunk:
-                return
-            if len(buf)+len(chunk)>MAX_OUTPUT:
-                overflow.set()
-                return
-            buf.extend(chunk)
-    reader=threading.Thread(target=drain,daemon=True)
-    reader.start()
-    deadline=time.monotonic()+240
-    try:
-        while p.poll() is None:
-            if overflow.is_set() or time.monotonic()>deadline:
-                raise TimeoutError("Container exceeded output or time limit")
-            time.sleep(.2)
-        reader.join(5)
-        if reader.is_alive() or overflow.is_set():
-            raise ValueError("Container output exceeded limit")
-        return p.returncode,bytes(buf)
-    finally:
-        if p.poll() is None:
-            # Stop ONLY the unique container created by this invocation.
-            try:
-                docker("kill",name,timeout=15)
-            except (OSError,subprocess.SubprocessError):
-                pass
-            p.kill()
-            p.wait(timeout=10)
-        p.stdout.close()
-
-
-def unpack(raw, folder):
-    log, marker, payload=raw.rpartition(MARKER)
-    if not marker:
-        raise ValueError("No result envelope")
-    files=json.loads(payload)
-    if not isinstance(files,dict) or not 1<=len(files)<=16:
-        raise ValueError("Invalid result envelope")
-    total=0
-    decoded={}
-    reports=[]
-    for rel,b64 in files.items():
-        if not isinstance(rel,str) or not OUTPUT_PATH.fullmatch(rel) or not isinstance(b64,str):
-            raise ValueError("Unexpected output path")
-        data=base64.b64decode(b64,validate=True)
-        total+=len(data)
-        if total>10*1024*1024:
-            raise ValueError("Output limit exceeded")
-        decoded[rel]=data
-        if rel.endswith("/market_state.json"):
-            reports.append(data)
-    if len(reports)!=1 or len(reports[0])>MAX_REPORT:
-        raise ValueError("Expected exactly one bounded market_state.json")
-    report=json.loads(reports[0])
-    if report.get("version") not in ("market-state-v1","market-state-v2") or not isinstance(report.get("families"),dict):
-        raise ValueError("Unexpected market state schema")
-    for rel,data in decoded.items():
-        new_bytes(folder/"output"/rel,data)
-    new_bytes(folder/"container.log",log[-65536:])
-    return report,hashlib.sha256(reports[0]).hexdigest()
-
-
-def execute(job, folder, image):
-    result={"version":"local-runner-result-v1",**job,"started_utc":utc()}
-    try:
-        code=stage(job,folder)
-        rc,raw=container_run(code,image)
-        if rc!=0:
-            new_bytes(folder/"container.log",raw[-65536:])
-            result.update(status="error",stage="container",exit_code=rc,
-                          log_tail=raw[-12000:].decode("utf-8","replace"))
-        else:
-            report,digest=unpack(raw,folder)
-            result.update(status="ok",report=report,report_sha256=digest)
-    except (OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as exc:
-        # Host-side exceptions: never transmit tokens, full command lines or local files.
-        result.update(status="error",stage="controller",error_type=type(exc).__name__,
-                      http_status=exc.code if isinstance(exc,HTTPError) else None)
-        print("Local error:",type(exc).__name__,str(exc)[:300],flush=True)
-    result["finished_utc"]=utc()
-    return result
-
-
-def handle(job, cfg, token, relay=None):
+def handle(job,cfg,token,relay=None):
     job=validate_job(job)
     repo=cfg["repo"]
     result_path="results/"+job["id"]+".json"
-    existing=remote_read(repo,token,result_path)
     folder=safe_path(CONTROL/"jobs"/job["id"])
     local=folder/"result.json"
+    existing=remote_read(repo,token,result_path)
     if existing is not None:
         if any(existing.get(k)!=v for k,v in job.items()):
             raise ValueError("Remote result ID collision")
@@ -343,18 +213,13 @@ def handle(job, cfg, token, relay=None):
         result=json.loads(read_bytes(local))
         if any(result.get(k)!=v for k,v in job.items()):
             raise ValueError("Local result ID collision")
-    elif folder.exists():
-        # Crash/interruption: never rerun an already-started job automatically.
-        result={"version":"local-runner-result-v1",**job,"status":"interrupted",
-                "finished_utc":utc()}
-        new_bytes(local,encoded(result))
     else:
-        folder.mkdir(parents=True,exist_ok=False)
-        print("Starting",job["id"],job["task"],job["commit"],flush=True)
-        result=execute(job,folder,cfg["image"])
+        result=cloud_result(job)
+        if result is None:
+            return
         new_bytes(local,encoded(result))
     remote_create(repo,token,result_path,result)
-    print("Uploaded",job["id"],result["status"],flush=True)
+    print("Cloud result:",job["id"],result["status"],flush=True)
     if relay:
         relay.publish(job,result)
 
@@ -363,12 +228,6 @@ def setup():
     safe_path(ROOT)
     if CONTROL.exists():
         raise ValueError("Controller already exists. Do not overwrite it automatically.")
-    local_docker()
-    print("Preparing official Python image (one-time download).")
-    docker("pull",IMAGE,timeout=600)
-    image=docker("image","inspect",IMAGE,"--format","{{.Id}}")
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}",image):
-        raise ValueError("Unexpected image identity")
     repo=input("Private mailbox repo (kh827y/btc-lab-bridge): ").strip()
     token=getpass.getpass("Fine-grained token for mailbox ONLY (hidden): ").strip()
     if not token.startswith("github_pat_"):
@@ -381,13 +240,13 @@ def setup():
     new_bytes(CONTROL/"local_relay.py",safe_path(ROOT/"local_relay.py").read_bytes())
     for name in ("manifest.json","popup.html","popup.js","worker.js"):
         new_bytes(CONTROL/"browser_bridge"/name,safe_path(ROOT/"browser_bridge"/name).read_bytes())
-    new_bytes(CONTROL/"config.json",encoded({"repo":repo,"image":image,"relay_key":key,"telegram_chat":chat}))
+    new_bytes(CONTROL/"config.json",encoded({"repo":repo,"relay_key":key,"telegram_chat":chat}))
     new_bytes(CONTROL/"token.dpapi",dpapi(token.encode("utf-8")))
     if bot:
         new_bytes(CONTROL/"telegram.dpapi",dpapi(bot.encode("utf-8")))
     # This launcher is copied once into ignored local data and never auto-updated.
     new_bytes(CONTROL/"start.bat",b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I "%~dp0controller.py" listen\r\npause\r\n')
-    remote_create(repo,token,"ready.json",{"version":"local-runner-v1","status":"ready",
+    remote_create(repo,token,"ready.json",{"version":"cloud-relay-v1","status":"ready",
                   "tasks":list(TASKS),"created_utc":utc()})
     print("SETUP OK. Start data\\local_runner\\start.bat")
     print("Load unpacked in Brave:",CONTROL/"browser_bridge")
@@ -397,7 +256,6 @@ def setup():
 def listen():
     if Path(__file__).resolve()!=safe_path(CONTROL/"controller.py").resolve():
         raise ValueError("Start the fixed installed controller, not the Git version")
-    local_docker()
     cfg=json.loads(read_bytes(CONTROL/"config.json",8192))
     token=dpapi(read_bytes(CONTROL/"token.dpapi",8192),True).decode("utf-8")
     private_repo(cfg["repo"],token)
@@ -413,7 +271,7 @@ def listen():
     bot=dpapi(read_bytes(bot_path,8192),True).decode("utf-8") if bot_path.exists() else None
     relay=Relay(cfg["relay_key"],cfg["repo"],CONTROL,new_bytes,encoded,utc,bot,cfg.get("telegram_chat"))
     server=relay.start()
-    print("Listening for approved jobs. Ctrl+C stops polling.",flush=True)
+    print("Listening for cloud results. No remote code runs on this PC. Ctrl+C stops polling.",flush=True)
     try:
         while True:
             try:
@@ -425,7 +283,7 @@ def listen():
                         handle(job,cfg,token,relay)
             except (OSError,ValueError,KeyError,TypeError) as exc:
                 print("Poll stopped for this iteration:",type(exc).__name__,str(exc)[:180],flush=True)
-            time.sleep(30)
+            time.sleep(90)
     finally:
         server.shutdown()
         server.server_close()
@@ -444,6 +302,6 @@ if __name__=="__main__":
             raise ValueError("Expected setup or listen")
     except KeyboardInterrupt:
         print("Stopped.")
-    except (OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as exc:
+    except (OSError,ValueError,KeyError,TypeError) as exc:
         print("STOP:",type(exc).__name__,str(exc)[:300])
         sys.exit(1)
