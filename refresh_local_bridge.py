@@ -4,10 +4,12 @@ import json
 import os
 import secrets
 import sys
+import subprocess
 from pathlib import Path
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from local_runner import ROOT, CONTROL, safe_path, new_bytes, read_bytes, encoded, START_BAT
+from local_docker import prepare_test_image
 
 def main():
     if os.name!="nt" or Path.cwd()!=ROOT:
@@ -26,10 +28,12 @@ def main():
         cfg=json.loads(read_bytes(CONTROL/"config.json",8192))
         if cfg.get("repo")!="kh827y/btc-lab-bridge":
             raise ValueError("Unexpected installed configuration")
+        prepare_test_image(CONTROL)
         cfg["relay_key"]=secrets.token_hex(32)
         nonce=secrets.token_hex(8)
         files=[("local_relay.py",read_bytes(ROOT/"local_relay.py",128*1024)),
                ("controller.py",read_bytes(ROOT/"local_runner.py",128*1024)),
+               ("local_docker.py",read_bytes(ROOT/"local_docker.py",128*1024)),
                ("start.bat",START_BAT),
                ("browser_bridge/worker.js",read_bytes(ROOT/"browser_bridge"/"worker.js",128*1024)),
                ("browser_bridge/popup.js",read_bytes(ROOT/"browser_bridge"/"popup.js",128*1024))]
@@ -57,6 +61,6 @@ def main():
 if __name__=="__main__":
     try:
         main()
-    except (OSError,ValueError,KeyError,TypeError) as e:
+    except (OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as e:
         print("STOP:",type(e).__name__,str(e)[:180])
         sys.exit(1)
