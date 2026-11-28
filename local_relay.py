@@ -3,6 +3,7 @@ import json
 import re
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
@@ -57,6 +58,7 @@ class Relay:
         self.new_bytes,self.encoded,self.utc=new_bytes,encoded,utc
         self.bot_token,self.chat=bot_token,chat
         self.event=None
+        self.pending_since=None
         self.lock=threading.Lock()
 
     def notify(self,event_id,message):
@@ -96,6 +98,8 @@ class Relay:
             status=result.get("status","error")
             if status not in ("ok","error","interrupted"):
                 status="error"
+            if self.event is None:
+                self.pending_since=time.monotonic()
             self.event={"id":jid,"message":
                 "BTC-Lab: локальное задание "+jid+" завершено ("+status+
                 "). Прочитай через GitHub "+self.repo+"/results/"+jid+
@@ -104,7 +108,11 @@ class Relay:
 
     def pending(self):
         with self.lock:
-            return self.event is not None
+            event=self.event
+            overdue=event is not None and self.pending_since is not None and time.monotonic()-self.pending_since>300
+        if overdue:
+            self.notify("wait-"+event["id"][:55],"🚨 BTC-Lab: результат готов, но чат не получил запрос. Проверь Brave.")
+        return event is not None
 
     def request(self,method,path,body):
         alert=None
@@ -128,7 +136,7 @@ class Relay:
                 if not ack.exists():
                     self.new_bytes(ack,self.encoded({"status":body["status"],"utc":self.utc()}))
                     if body["status"]=="blocked":
-                        alert="b-"+jid
+                        alert="b-"+jid[:60]
                 answer={"ok":True}
             else:
                 answer={"ok":False}
