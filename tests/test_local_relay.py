@@ -28,3 +28,33 @@ class RelayTest(unittest.TestCase):
             self.assertTrue(r.progress({"id":"p1","kind":"attention","text":"Owner needed"}))
             with self.assertRaises(ValueError):
                 r.progress({"id":"../bad","kind":"progress","text":"test"})
+
+    def test_watchdog_does_not_resend_claimed_event(self):
+        import json
+        import os
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            def write(p,b):
+                p.parent.mkdir(parents=True,exist_ok=True)
+                with p.open("xb") as f:
+                    f.write(b)
+            r=Relay("a"*64,"kh827y/btc-lab-bridge",root,write,
+                lambda o:json.dumps(o).encode(),lambda:"test")
+            job={"id":"job2"}
+            r.publish(job,{"status":"ok"})
+            self.assertTrue(r.request("POST","/claim",{"id":"job2"})["ok"])
+            claim=root/"claims"/"job2.json"
+            old=time.time()-301
+            os.utime(claim,(old,old))
+            with patch.object(r,"notify") as notify:
+                r.publish(job,{"status":"ok"})
+                self.assertEqual(notify.call_args.args[0],"ack-job2")
+                self.assertEqual(r.request("GET","/next",{}),{})
+            r.request("POST","/ack",{"id":"job2","status":"clicked"})
+            old=time.time()-5401
+            os.utime(claim,(old,old))
+            with patch.object(r,"notify") as notify:
+                r.publish(job,{"status":"ok"})
+                self.assertEqual(notify.call_args.args[0],"idle-job2")
+                self.assertEqual(r.request("GET","/next",{}),{})
