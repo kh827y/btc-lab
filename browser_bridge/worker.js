@@ -97,7 +97,7 @@ async function poll(checkComposer=false){
   if(!t?.url||new URL(t.url).origin+new URL(t.url).pathname!==s.url){
     if(event.id){const grant=await api(s.key,"/claim",{id:event.id});
     if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});}
-    await chrome.storage.local.set({armed:false,status:"Чат закрыт или изменён. Привяжи заново."});return;
+    await chrome.storage.local.set({armed:false,pausedByOwner:false,status:"Чат закрыт или изменён. Привяжи заново."});return;
   }
   // Idle polling stays in the extension worker: never scan the long chat DOM
   // without a real result, except when the owner explicitly binds the tab.
@@ -113,23 +113,36 @@ async function poll(checkComposer=false){
   if(state!=="ready"){
     const grant=await api(s.key,"/claim",{id:event.id});
     if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});
-    await chrome.storage.local.set({armed:false,status:"Остановлено: "+state});return;
+    await chrome.storage.local.set({armed:false,pausedByOwner:false,status:"Остановлено: "+state});return;
   }
   const counts=await chrome.storage.local.get(["sent"]);
   if((counts.sent||0)>=20){
     const grant=await api(s.key,"/claim",{id:event.id});
     if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});
-    await chrome.storage.local.set({armed:false,status:"Лимит пилота: 20 сообщений. Требуется ручная проверка."});return;
+    await chrome.storage.local.set({armed:false,pausedByOwner:false,status:"Лимит пилота: 20 сообщений. Требуется ручная проверка."});return;
   }
   if(!(await chrome.storage.local.get("armed")).armed)return;
   const grant=await api(s.key,"/claim",{id:event.id});
   if(!grant.ok)return;
   claimed=event.id;
+  const current=await chrome.storage.local.get(["armed","url","tabId","key"]);
+  if(!current.armed||current.url!==s.url||current.tabId!==s.tabId||current.key!==s.key){
+    await api(s.key,"/ack",{id:claimed,status:"blocked"});
+    await chrome.storage.local.set({armed:false,pausedByOwner:false,status:"Отправка остановлена после захвата результата. Требуется ручная проверка."});
+    return;
+  }
   const result=await inject(s.tabId,composerAction,[s.url,event.message]);
   await api(s.key,"/ack",{id:claimed,status:result==="clicked"?"clicked":"blocked"});
-  await chrome.storage.local.set({status:result==="clicked"?"Нажата отправка "+claimed:"Отправка не подтверждена: "+result,armed:result==="clicked",sent:(counts.sent||0)+(result==="clicked"?1:0)});
+  // Never re-arm after an owner pause during an already in-flight send.
+  // A completed click remains counted and cannot be replayed.
+  if(result==="clicked"){
+    const latest=await chrome.storage.local.get(["armed","pausedByOwner"]);
+    await chrome.storage.local.set({status:latest.pausedByOwner?"Остановлено владельцем":"Нажата отправка "+claimed,sent:(counts.sent||0)+1});
+  }else{
+    await chrome.storage.local.set({armed:false,pausedByOwner:false,status:"Отправка не подтверждена: "+result});
+  }
  }catch(e){
-  if(claimed&&s?.key){try{await api(s.key,"/ack",{id:claimed,status:"blocked"});}catch{}await chrome.storage.local.set({armed:false,status:"Неопределённая отправка. Повтор запрещён."});}
+  if(claimed&&s?.key){try{await api(s.key,"/ack",{id:claimed,status:"blocked"});}catch{}await chrome.storage.local.set({armed:false,pausedByOwner:false,status:"Неопределённая отправка. Повтор запрещён."});}
   else await chrome.storage.local.set({status:String(e.message).slice(0,150)});
  }finally{busy=false;}
 }
