@@ -109,6 +109,10 @@ class Relay:
         claim=self.control/"claims"/(jid+".json")
         if not claim.is_file():
             return False
+        with claim.open("rb") as f:
+            info=json.loads(f.read(2048))
+        if info.get("state")=="superseded":
+            return True
         ack=self.control/"claims"/(jid+".ack.json")
         age=max(0,time.time()-claim.stat().st_mtime)
         if not ack.is_file():
@@ -144,9 +148,19 @@ class Relay:
                 ".json, проверь результат и продолжай по ROADMAP.md. "+
                 "При необходимости участия владельца создай progress.json с kind=attention."}
 
-    def pending(self):
+    def pending(self,next_job_id=None):
         with self.lock:
             event=self.event
+            if event is not None and next_job_id is not None and next_job_id!=event["id"]:
+                # A newer explicit mailbox job supersedes an unclaimed delivery.
+                # Preserve the original result; never resend a claimed message.
+                old=event["id"]
+                self.new_bytes(self.control/"claims"/(old+".json"),self.encoded(
+                    {"utc":self.utc(),"state":"superseded","next_id":next_job_id}))
+                self.event=None
+                self.pending_since=None
+                print("Previous result already superseded:",old,"->",next_job_id,flush=True)
+                return False
             overdue=event is not None and self.pending_since is not None and time.monotonic()-self.pending_since>300
         if overdue:
             self.notify("wait-"+event["id"][:55],"🚨❗ BTC-Lab: результат готов, но чат не получил запрос. Проверь Brave.")
