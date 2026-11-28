@@ -68,7 +68,6 @@ research_cpi_coinbase.py — отдельная сверка development с Coin
 
 research_cpi_calendar.py — отдельный описательный part A, семь фиксированных списков дат ALFRED, кэш в data/research/cpi, проверка формата и минимального покрытия, контрольные окна в том же местном времени, исключение всего дня при совпадении списка. Не изменяет подготовленные CSV или недельную модель, не читает итоговые данные. Ограничения в CPI_PROTOCOL.md.
 
-research_cpi_final.py — отдельный локальный evaluator, сверяет Git lock и committed blobs до чтения исходов; итоговые события только в памяти, один final_report.json без перезаписи. Независимая репликация использует расширенный cutoff только из финального evaluator; обычный Coinbase development сохраняет старое ограничение. Это организационная/техническая защита от случайного изменения, не OS sandbox.
 
 forecast_journal.py — изолированный локальный перспективный журнал; использует существующие binance_daily.parse_klines и extended_history.request_json, публичные UTC daily и exchange time. issue/settle/status, данные под игнорируемым data/research/forecast. Фиксированный empirical-v1 с 7/28/90d, прогноз и source snapshot отдельно от исходов. Независимое время receipt проверяется отдельно по GitHub Issue, не подменяется exchange clock. Никаких ключей, фоновых процессов, вызовов LLM или записи на GitHub из скрипта.
 
@@ -108,7 +107,6 @@ risk_journal.py — separate prospective price-reference tracking, same live sou
 
 research_dvol.py — official public Deribit daily DVOL acquisition and coverage audit, cached raw pages and normalized snapshot; fixed descriptive comparison to 30-day realized variance and price EWMA, no model fit or new confirmation. Existing price loader/fetch helpers reused.
 
-research_tools.py — narrow local read-only dispatch, explicit operations/argument allowlist, fixed metadata and report paths, 24 KB output limit, bounded reads, journal receipt hash checks; no raw report contents, shell, network, writes, API calls or held-out outcome access. Host controls root/date, never expose those to model. Not a general filesystem sandbox or complete agent system.
 
 research_controller.py — host-side sequential three-call controller with strict JSON and explicit tool/evidence allowlist, bounded payloads, no retry, human review required. DryRunTransport is deterministic local stub only. No provider API, credentials, or execution capability. See AGENT_CONTROLLER.md.
 
@@ -148,10 +146,4 @@ research_absorb.py — ABSORB-001, descriptive price response to executed spot s
 
 - `market_state.py` v2 переиспользует `live_derivatives.run` для четырёх прямых Binance запросов при ручном запуске; сохраняет исходные ответы под отдельным каталогом с хэшами и ссылкой на отчёт. Общий пакет имеет отдельное время сборки, каждый источник собственное время. Изменение OI по точным endpoints, отдельно покрытие; средняя премия и доля отрицательных часовых закрытий только на полном окне; при ошибках null. Без изменений коллектора btc-market-data, журналов или мониторинга.
 
-- `local_runner.py`, `local_relay.py`, `browser_bridge/`: отдельный owner-installed pilot; fixed copies under ignored data/local_runner, dedicated private mailbox, immutable SHA source staging, bounded Docker execution, loopback authenticated one-event relay to explicit Brave chat and concise Telegram notifications. No remote shell, host credentials, automatic controller updates, historical data mounts, model/API automation or journal/monitor modifications. See LOCAL_RUNNER.md.
-
-- Supersedes Docker pilot: local_runner.py is fixed Windows cloud status relay only, no subprocess or remote code execution. market_state_check.yml on explicit cloud_job.json push runs public research code with read-only permission, bounded runtime, public report/log artifact. Dedicated private mailbox maps exact commit to completed run; Brave and Telegram unchanged. See LOCAL_RUNNER.md.
-
-- `sandbox_probe.py`, `sandbox_guest_probe.py`, `run_sandbox_probe.bat`: однократная owner-run readiness проверка без Docker. Скопированный stdlib runtime и конфигурация на D, offline Sandbox read-only архив Binance 1m и canary, единственная новая writable output папка. До 3 GiB free C preflight, 2 GiB warning floor (не hard quota); ручное закрытие первой сессии. SHA-256 одного ZIP и sidecar, без нового outcome research. Host execution of remote code remains forbidden. Local autonomous archive route pending actual compatibility check.
-
-- local_sandbox.py / sandbox_archive_task.py: отдельный offline archive_check, точный current main SHA, два фиксированных исходных файла, read-only Binance 1m, отдельный output, фиксированный runtime, штатный wsb.exe own UUID lifecycle; fail-closed halt on uncertain stop. No remote host execution; cloud market_state retained. Windows CLI compatibility still unverified.
+- `local_runner.py`, `local_relay.py`, `browser_bridge/`, `local_docker.py`, `docker_archive_task.py`: fixed relay and Docker-only local execution. Cloud market_state and offline archive_check (exact current main, code + Binance minute archive RO, network none, bounded output and own container ID cleanup). No host shell or auto-update of installed controller, no broad file access. Docker on D, WSL disk on D; operational disk guards. See LOCAL_RUNNER.md. Live Windows compatibility unverified.
