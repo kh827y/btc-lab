@@ -1,12 +1,9 @@
-import base64
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-
 import local_runner as r
-
 
 class LocalRunnerTest(unittest.TestCase):
     def test_allowlist(self):
@@ -17,29 +14,33 @@ class LocalRunnerTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 r.validate_job(invalid)
 
-    def test_bounded_output(self):
-        report={"version":"market-state-v2","families":{}}
-        name="state/20261128T113000123456Z/market_state.json"
-        payload={name:base64.b64encode(r.encoded(report)).decode("ascii")}
-        with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp)
-            with patch.object(r,"ROOT",root):
-                folder=root/"job"
-                folder.mkdir()
-                out,digest=r.unpack(b"log"+r.MARKER+json.dumps(payload).encode(),folder)
-                self.assertEqual(out,report)
-                self.assertEqual(len(digest),64)
-                self.assertTrue((folder/"output"/name).is_file())
+    def test_cloud_exact_run(self):
+        job={"id":"probe","commit":"a"*40,"task":"market_state"}
+        run={"id":123,"head_sha":job["commit"],"head_branch":"main","event":"push",
+             "path":".github/workflows/market_state_check.yml","status":"completed",
+             "conclusion":"failure"}
+        def fetch(url):
+            self.assertIn(job["commit"],url)
+            return json.dumps({"workflow_runs":[run]}).encode()
+        self.assertEqual(r.cloud_result(job,fetch)["status"],"error")
+        self.assertEqual(r.cloud_result(job,fetch)["run_id"],123)
+        run["status"]="in_progress"
+        self.assertIsNone(r.cloud_result(job,fetch))
+        run["status"]="completed"
+        run["head_sha"]="b"*40
+        self.assertIsNone(r.cloud_result(job,fetch))
+
+    def test_local_paths_and_collision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            with patch.object(r,"ROOT",root),patch.object(r,"CONTROL",root/"control"):
+                f=root/"control"/"new.json"
+                r.new_bytes(f,b"test")
                 with self.assertRaises(FileExistsError):
-                    r.new_bytes(folder/"output"/name,b"overwrite")
-                for path in ("../outside.json","state/../market_state.json","C:/escape.json"):
-                    with self.assertRaises(ValueError):
-                        r.unpack(r.MARKER+json.dumps({path:payload[name]}).encode(),folder)
+                    r.new_bytes(f,b"overwrite")
                 with self.assertRaises(ValueError):
                     r.safe_path(root.parent/"outside")
-
-    def test_reject_existing_result_collision(self):
-        job={"id":"probe","commit":"a"*40,"task":"market_state"}
-        with patch.object(r,"remote_read",return_value={**job,"commit":"b"*40}):
-            with self.assertRaises(ValueError):
-                r.handle(job,{"repo":"kh827y/private"},"token")
+                job={"id":"probe","commit":"a"*40,"task":"market_state"}
+                with patch.object(r,"remote_read",return_value={**job,"commit":"b"*40}):
+                    with self.assertRaises(ValueError):
+                        r.handle(job,{"repo":"kh827y/btc-lab-bridge"},"token")
