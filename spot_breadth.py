@@ -30,7 +30,8 @@ def valid(row,venue,key):
     symbol,quote=SYMBOLS[venue]
     source=row.get("source")
     if venue=="coinbase":
-        return (row.get("symbol")==symbol and row.get("quote")==quote and
+        return (source=="Coinbase Exchange public REST BTC-USD validated ID-continuous scan" and
+                row.get("symbol")==symbol and row.get("quote")==quote and
                 row.get("integrity")=="id_continuous_verified" and
                 row.get("time_basis")=="exchange_trade_time")
     if venue=="kraken" and source=="Kraken official public REST Trades":
