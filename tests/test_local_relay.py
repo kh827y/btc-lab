@@ -58,3 +58,24 @@ class RelayTest(unittest.TestCase):
                 r.publish(job,{"status":"ok"})
                 self.assertEqual(notify.call_args.args[0],"idle-job2")
                 self.assertEqual(r.request("GET","/next",{}),{})
+
+    def test_explicit_new_job_supersedes_unclaimed_delivery(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            def write(p,b):
+                p.parent.mkdir(parents=True,exist_ok=True)
+                with p.open("xb") as f:
+                    f.write(b)
+            r=Relay("a"*64,"kh827y/btc-lab-bridge",root,write,
+                lambda o:json.dumps(o).encode(),lambda:"test")
+            r.publish({"id":"old"},{"status":"ok"})
+            self.assertTrue(r.pending("old"))
+            self.assertFalse(r.pending("new"))
+            self.assertEqual(r.request("GET","/next",{}),{})
+            self.assertEqual(json.loads((root/"claims"/"old.json").read_text())["state"],"superseded")
+            self.assertFalse(r.request("POST","/claim",{"id":"old"})["ok"])
+            r.publish({"id":"old"},{"status":"ok"})
+            self.assertFalse(r.pending())
+            r.publish({"id":"new"},{"status":"ok"})
+            self.assertEqual(r.request("GET","/next",{})["id"],"new")
