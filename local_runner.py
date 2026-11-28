@@ -351,14 +351,11 @@ def handle(job, cfg, token, relay=None):
     else:
         folder.mkdir(parents=True,exist_ok=False)
         print("Starting",job["id"],job["task"],job["commit"],flush=True)
-        if relay:
-            relay.notify("start-"+job["id"][:56],"🔧 BTC-Lab: запускаю "+job["task"]+".")
         result=execute(job,folder,cfg["image"])
         new_bytes(local,encoded(result))
     remote_create(repo,token,result_path,result)
     print("Uploaded",job["id"],result["status"],flush=True)
     if relay:
-        relay.notify("done-"+job["id"][:56],("✅" if result["status"]=="ok" else "⚠️")+" BTC-Lab: "+job["task"]+" — "+result["status"]+".")
         relay.publish(job,result)
 
 
@@ -417,7 +414,6 @@ def listen():
     relay=Relay(cfg["relay_key"],cfg["repo"],CONTROL,new_bytes,encoded,utc,bot,cfg.get("telegram_chat"))
     server=relay.start()
     print("Listening for approved jobs. Ctrl+C stops polling.",flush=True)
-    relay.notify("listener-ready","✅ BTC-Lab: локальный исполнитель запущен.")
     try:
         while True:
             try:
