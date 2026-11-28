@@ -151,3 +151,5 @@ research_absorb.py — ABSORB-001, descriptive price response to executed spot s
 - `live_macro.py`: независимые точные FRED/ALFRED CSV четырёх текущих рядов, ограниченные запросы и строгий парсер, raw SHA/время получения, отдельный `direct_macro` в market-state-v4. Нет исторических винтажных утверждений, замены upstream, скоринга или правок журналов.
 
 - `live_macro_primary.py`: current primary-publisher route NY Fed EFFR business-day, Treasury XML 2y/10y nominal par constant maturity, Fed H.10 daily broad USD table; strict parsing, bounded raw bytes/hashes, same freshness and change logic, no inferred DFF. `live_macro.py` retains v4 source parser and shared summarize.
+
+- `spot_breadth.py` — отдельный детерминированный контекст market-state-v6 из существующего публичного hourly state.json. Проверяет точный endpoint, фиксированные корзины, источники/символы, часы, качество и суммы относительно brief. Сохраняет исходный архив и SHA; не изменяет upstream и не создаёт прогноз. Локальный unit_tests подтверждён 288/288; ручной cloud CI сохранён.
