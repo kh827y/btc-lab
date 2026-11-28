@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import stat
 import subprocess
 import sys
@@ -16,6 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, build_opener, HTTPRedirectHandler
+
+# -I excludes the script directory. Only the explicitly installed peer module is used.
+if __name__ == "__main__":
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+from local_relay import Relay, configure_bot
 
 ROOT = Path(r"D:\Проекты\btc-lab")
 CONTROL = ROOT / "data" / "local_runner"
@@ -28,7 +34,7 @@ MAX_REPORT = 256 * 1024
 MARKER = b"\nBTC_LAB_RESULT_V1 "
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 SHA = re.compile(r"[0-9a-f]{40}")
-REPO = re.compile(r"kh827y/[A-Za-z0-9_.-]+", re.I)
+REPO = re.compile(r"kh827y/btc-lab-bridge", re.I)
 STAMP = r"[0-9]{8}T[0-9]{12}Z"
 OUTPUT_PATH = re.compile(r"state/"+STAMP+r"/(?:brief\.json|market_state\.json|binance_perpetual/"+STAMP+r"/(?:oi_[0-9]+\.json|mark\.json|premium\.json|derivatives_readiness\.json))")
 
@@ -318,17 +324,21 @@ def execute(job, folder, image):
     return result
 
 
-def handle(job, cfg, token):
+def handle(job, cfg, token, relay=None):
     job=validate_job(job)
     repo=cfg["repo"]
     result_path="results/"+job["id"]+".json"
     existing=remote_read(repo,token,result_path)
+    folder=safe_path(CONTROL/"jobs"/job["id"])
+    local=folder/"result.json"
     if existing is not None:
         if any(existing.get(k)!=v for k,v in job.items()):
             raise ValueError("Remote result ID collision")
+        if relay and local.exists():
+            if json.loads(read_bytes(local))!=existing:
+                raise ValueError("Remote result differs from local")
+            relay.publish(job,existing)
         return
-    folder=safe_path(CONTROL/"jobs"/job["id"])
-    local=folder/"result.json"
     if local.exists():
         result=json.loads(read_bytes(local))
         if any(result.get(k)!=v for k,v in job.items()):
@@ -341,14 +351,21 @@ def handle(job, cfg, token):
     else:
         folder.mkdir(parents=True,exist_ok=False)
         print("Starting",job["id"],job["task"],job["commit"],flush=True)
+        if relay:
+            relay.notify("start-"+job["id"][:56],"🔧 BTC-Lab: запускаю "+job["task"]+".")
         result=execute(job,folder,cfg["image"])
         new_bytes(local,encoded(result))
     remote_create(repo,token,result_path,result)
     print("Uploaded",job["id"],result["status"],flush=True)
+    if relay:
+        relay.notify("done-"+job["id"][:56],("✅" if result["status"]=="ok" else "⚠️")+" BTC-Lab: "+job["task"]+" — "+result["status"]+".")
+        relay.publish(job,result)
 
 
 def setup():
     safe_path(ROOT)
+    if CONTROL.exists():
+        raise ValueError("Controller already exists. Do not overwrite it automatically.")
     local_docker()
     print("Preparing official Python image (one-time download).")
     docker("pull",IMAGE,timeout=600)
@@ -360,17 +377,24 @@ def setup():
     if not token.startswith("github_pat_"):
         raise ValueError("Use a fine-grained token, not a classic token")
     private_repo(repo,token)
-    if CONTROL.exists():
-        raise ValueError("Controller already exists. Do not overwrite it automatically.")
+    bot,chat=configure_bot(getpass.getpass)
+    key=secrets.token_hex(32)
     CONTROL.mkdir(parents=True,exist_ok=False)
     new_bytes(CONTROL/"controller.py",Path(__file__).read_bytes())
-    new_bytes(CONTROL/"config.json",encoded({"repo":repo,"image":image}))
+    new_bytes(CONTROL/"local_relay.py",safe_path(ROOT/"local_relay.py").read_bytes())
+    for name in ("manifest.json","popup.html","popup.js","worker.js"):
+        new_bytes(CONTROL/"browser_bridge"/name,safe_path(ROOT/"browser_bridge"/name).read_bytes())
+    new_bytes(CONTROL/"config.json",encoded({"repo":repo,"image":image,"relay_key":key,"telegram_chat":chat}))
     new_bytes(CONTROL/"token.dpapi",dpapi(token.encode("utf-8")))
+    if bot:
+        new_bytes(CONTROL/"telegram.dpapi",dpapi(bot.encode("utf-8")))
     # This launcher is copied once into ignored local data and never auto-updated.
     new_bytes(CONTROL/"start.bat",b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I "%~dp0controller.py" listen\r\npause\r\n')
     remote_create(repo,token,"ready.json",{"version":"local-runner-v1","status":"ready",
                   "tasks":list(TASKS),"created_utc":utc()})
     print("SETUP OK. Start data\\local_runner\\start.bat")
+    print("Load unpacked in Brave:",CONTROL/"browser_bridge")
+    print("Local extension pairing key (do not send to anyone):",key)
 
 
 def listen():
@@ -388,18 +412,27 @@ def listen():
     lock=mutex.CreateMutexW(None,False,"Local\\BTC-Lab-Local-Runner-v1")
     if not lock or mutex.GetLastError()==183:
         raise ValueError("Another executor is running")
+    bot_path=CONTROL/"telegram.dpapi"
+    bot=dpapi(read_bytes(bot_path,8192),True).decode("utf-8") if bot_path.exists() else None
+    relay=Relay(cfg["relay_key"],cfg["repo"],CONTROL,new_bytes,encoded,utc,bot,cfg.get("telegram_chat"))
+    server=relay.start()
     print("Listening for approved jobs. Ctrl+C stops polling.",flush=True)
+    relay.notify("listener-ready","✅ BTC-Lab: локальный исполнитель запущен.")
     try:
         while True:
             try:
                 private_repo(cfg["repo"],token)
-                job=remote_read(cfg["repo"],token,"job.json")
-                if job is not None:
-                    handle(job,cfg,token)
+                attention=relay.progress(remote_read(cfg["repo"],token,"progress.json"))
+                if not attention and not relay.pending():
+                    job=remote_read(cfg["repo"],token,"job.json")
+                    if job is not None:
+                        handle(job,cfg,token,relay)
             except (OSError,ValueError,KeyError,TypeError) as exc:
                 print("Poll stopped for this iteration:",type(exc).__name__,str(exc)[:180],flush=True)
             time.sleep(30)
     finally:
+        server.shutdown()
+        server.server_close()
         mutex.CloseHandle(lock)
 
 
