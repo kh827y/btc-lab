@@ -149,3 +149,5 @@ research_absorb.py — ABSORB-001, descriptive price response to executed spot s
 - `local_runner.py`, `local_relay.py`, `browser_bridge/`, `local_docker.py`, `docker_archive_task.py`: fixed relay and Docker-only local execution. Cloud market_state and offline archive_check (exact current main, code + Binance minute archive RO, network none, bounded output and own container ID cleanup). No host shell or auto-update of installed controller, no broad file access. Docker on D, WSL disk on D; operational disk guards. See LOCAL_RUNNER.md. Live Windows compatibility unverified.
 
 - `live_macro.py`: независимые точные FRED/ALFRED CSV четырёх текущих рядов, ограниченные запросы и строгий парсер, raw SHA/время получения, отдельный `direct_macro` в market-state-v4. Нет исторических винтажных утверждений, замены upstream, скоринга или правок журналов.
+
+- `live_macro_primary.py`: current primary-publisher route NY Fed EFFR business-day, Treasury XML 2y/10y nominal par constant maturity, Fed H.10 daily broad USD table; strict parsing, bounded raw bytes/hashes, same freshness and change logic, no inferred DFF. `live_macro.py` retains v4 source parser and shared summarize.
