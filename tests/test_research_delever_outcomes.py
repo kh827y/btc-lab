@@ -37,10 +37,10 @@ class DeleverOutcomesTest(unittest.TestCase):
         self.assertEqual(overlap(items,28)["overlap_clusters"],2)
 
     def test_comparison_direction(self):
-        rows=bars(673)
+        rows=bars(841)
         rows[168]["spot"]["open"]=120
         a={"group":"contraction","entry_utc_ms":0,"7":measure(rows,0,7),"28":measure(rows,0,28)}
         # The second window starts at 120 and ends at 108 (-10%).
         rows[336]["spot"]["open"]=108
-        b={"group":"other","entry_utc_ms":168*HOUR,"7":measure(rows,0,7),"28":measure(rows,0,28)}
+        b={"group":"other","entry_utc_ms":168*HOUR,"7":measure(rows,168,7),"28":measure(rows,168,28)}
         self.assertAlmostEqual(compare([a,b])["median_wait_cost_difference"]["7"],.3)
