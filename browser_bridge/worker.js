@@ -41,20 +41,35 @@ async function poll(){
  try{
   s=await chrome.storage.local.get(["armed","url","tabId","key"]);
   if(!s.armed)return;
-  const t=await chrome.tabs.get(s.tabId);
-  if(!t.url||new URL(t.url).origin+new URL(t.url).pathname!==s.url){await chrome.storage.local.set({armed:false,status:"Чат закрыт или изменён. Привяжи заново."});return;}
   const event=await api(s.key,"/next");
   if(!event.id)return;
+  const t=await chrome.tabs.get(s.tabId).catch(()=>null);
+  if(!t?.url||new URL(t.url).origin+new URL(t.url).pathname!==s.url){
+    const grant=await api(s.key,"/claim",{id:event.id});
+    if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});
+    await chrome.storage.local.set({armed:false,status:"Чат закрыт или изменён. Привяжи заново."});return;
+  }
   if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(event.id)||typeof event.message!=="string"||event.message.length>1200)throw Error("Invalid event");
   const state=await inject(s.tabId,inspect,[s.url]);
-  if(state!=="ready"){await chrome.storage.local.set({status:"Ожидаю: "+state});return;}
+  if(state==="busy"||state==="draft_exists"){await chrome.storage.local.set({status:"Ожидаю: "+state});return;}
+  if(state!=="ready"){
+    const grant=await api(s.key,"/claim",{id:event.id});
+    if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});
+    await chrome.storage.local.set({armed:false,status:"Остановлено: "+state});return;
+  }
+  const counts=await chrome.storage.local.get(["sent"]);
+  if((counts.sent||0)>=20){
+    const grant=await api(s.key,"/claim",{id:event.id});
+    if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});
+    await chrome.storage.local.set({armed:false,status:"Лимит пилота: 20 сообщений. Требуется ручная проверка."});return;
+  }
   if(!(await chrome.storage.local.get("armed")).armed)return;
   const grant=await api(s.key,"/claim",{id:event.id});
   if(!grant.ok)return;
   claimed=event.id;
   const result=await inject(s.tabId,insertAndSend,[s.url,event.message]);
   await api(s.key,"/ack",{id:claimed,status:result==="clicked"?"clicked":"blocked"});
-  await chrome.storage.local.set({status:result==="clicked"?"Передан запрос "+claimed:"Отправка не подтверждена: "+result,armed:result==="clicked"});
+  await chrome.storage.local.set({status:result==="clicked"?"Нажата отправка "+claimed:"Отправка не подтверждена: "+result,armed:result==="clicked",sent:(counts.sent||0)+(result==="clicked"?1:0)});
  }catch(e){
   if(claimed&&s?.key){try{await api(s.key,"/ack",{id:claimed,status:"blocked"});}catch{}await chrome.storage.local.set({armed:false,status:"Неопределённая отправка. Повтор запрещён."});}
   else await chrome.storage.local.set({status:String(e.message).slice(0,150)});
