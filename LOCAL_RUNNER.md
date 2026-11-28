@@ -32,3 +32,6 @@
 
 ### Test image v2
 First local full suite: 285/287 pass, two Git-dependent synthetic lock tests error because slim image lacks git. v2 preserves pinned v1 and adds Git using apt during explicit owner refresh; no repeated pip installation when v1 exists, no deletion of old image. New immutable image pin test_image_v2.txt, runtime HOME=/tmp, network none. Owner stops runner/extension, update.bat and refresh_local_bridge.bat, reload/rebind as before. CI not reduced until a successful full local run.
+
+### Pause/resume UI
+After explicit owner refresh (now also copies popup.html), «Продолжить» resumes only an owner-paused original bound tab using stored key and existing sent count. No key entry or reload for subsequent ordinary pauses; closed/changed tab, rotated key, limit or ambiguous delivery requires manual review/pairing as appropriate. Owner pause does not cancel an already in-flight click; worker does not rearm on completion and rechecks binding after claim. Seven mocked popup checks passed; real Brave not yet checked. Console 0 stops safely, other keys ignored; Ctrl+C can still produce the Windows cmd batch confirmation, do not use it for routine stop. Owner-mediated Fable checkpoint remains unchanged.
