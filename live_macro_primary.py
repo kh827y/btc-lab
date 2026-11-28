@@ -84,58 +84,77 @@ def treasury(raw,year,day):
     return out
 
 class Tables(HTMLParser):
+    """Collect all rows, including tables nested in legacy layout tables."""
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.depth=0
+        self.stack=[]
         self.tables=[]
-        self.rows=None
-        self.row=None
-        self.cell=None
         self.headings=[]
         self.heading=None
     def handle_starttag(self,tag,attrs):
         if tag=="h5":
             self.heading=[]
         if tag=="table":
-            self.depth+=1
-            if self.depth==1:
-                self.rows=[]
-        if self.depth==1 and tag=="tr":
-            self.row=[]
-        if self.depth==1 and self.row is not None and tag in ("td","th"):
-            self.cell=[]
+            self.stack.append({"rows":[],"row":None,"cell":None})
+        if not self.stack:
+            return
+        t=self.stack[-1]
+        if tag=="tr":
+            if t["row"] is not None:
+                t["rows"].append(t["row"])
+            t["row"]=[]
+            t["cell"]=None
+        if tag in ("td","th") and t["row"] is not None:
+            if t["cell"] is not None:
+                self.end_cell(t)
+            t["cell"]=[]
+    @staticmethod
+    def end_cell(t):
+        if t["cell"] is not None:
+            t["row"].append(" ".join("".join(t["cell"]).split()))
+            t["cell"]=None
     def handle_data(self,data):
-        if self.cell is not None:
-            self.cell.append(data)
         if self.heading is not None:
             self.heading.append(data)
+        if self.stack and self.stack[-1]["cell"] is not None:
+            self.stack[-1]["cell"].append(data)
     def handle_endtag(self,tag):
         if tag=="h5" and self.heading is not None:
             self.headings.append(" ".join("".join(self.heading).split()))
             self.heading=None
-        if self.depth==1 and tag in ("td","th") and self.cell is not None:
-            self.row.append(" ".join("".join(self.cell).split()))
-            self.cell=None
-        if self.depth==1 and tag=="tr" and self.row is not None:
-            self.rows.append(self.row)
-            self.row=None
-        if tag=="table" and self.depth:
-            if self.depth==1:
-                self.tables.append(self.rows)
-                self.rows=None
-            self.depth-=1
+        if not self.stack:
+            return
+        t=self.stack[-1]
+        if tag in ("td","th"):
+            self.end_cell(t)
+        if tag in ("tr","table") and t["row"] is not None:
+            self.end_cell(t)
+            t["rows"].append(t["row"])
+            t["row"]=None
+        if tag=="table":
+            self.tables.append(t["rows"])
+            self.stack.pop()
 
 def broad(raw,day):
     p=Tables()
     p.feed(raw.decode("utf-8"))
     if "Nominal Broad Dollar Index - Daily Index" not in p.headings:
         raise ValueError("Unexpected H.10 series heading")
-    candidates=[t for t in p.tables if t and t[0]==["Date","Rate"]]
+    candidates=[]
+    for table in p.tables:
+        headers=[i for i,row in enumerate(table) if [x.casefold() for x in row]==["date","rate"]]
+        if len(headers)==1:
+            rows=table[headers[0]+1:]
+            # Ignore layout/header tables, not missing or malformed observations.
+            if any(len(row)==2 and re.fullmatch(r"\d{1,2}-[A-Za-z]{3}-\d{2}",row[0]) for row in rows):
+                candidates.append(rows)
     if len(candidates)!=1:
-        raise ValueError("Ambiguous H.10 table")
+        raise ValueError("Ambiguous H.10 table: "+str(len(candidates))+" data candidates in "+str(len(p.tables))+" tables")
     out={}
     seen=set()
-    for row in candidates[0][1:]:
+    for row in candidates[0]:
+        if not row or not any(row):
+            continue
         if len(row)!=2:
             raise ValueError("Unexpected H.10 row")
         d=datetime.strptime(row[0],"%d-%b-%y").date()
