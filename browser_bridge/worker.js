@@ -48,7 +48,7 @@ async function composerAction(expected,text=null){
   const stopping=()=>{
     const p=findEditor().p;
     const scope=scopeOf(p);
-    return [...(scope||document).querySelectorAll(stopSelector)].some(e=>visible(e)&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
+    return [...(scope||document).querySelectorAll(stopSelector)].some(visible);
   };
   const draft=p=>(p.value??p.innerText??"").trim();
   if(stopping())return "busy";
