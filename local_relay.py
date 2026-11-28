@@ -8,6 +8,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
 ID=re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+ACK_TIMEOUT=300
+CONTINUATION_TIMEOUT=90*60
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):
@@ -101,8 +103,31 @@ class Relay:
         self.notify("p-"+p["id"],prefix+p["text"])
         return p["kind"]=="attention"
 
+    def watch_claim(self,jid):
+        # A click does not establish acceptance by ChatGPT. An overdue claim
+        # is an intervention request, not proof of a conversation limit.
+        claim=self.control/"claims"/(jid+".json")
+        if not claim.is_file():
+            return False
+        ack=self.control/"claims"/(jid+".ack.json")
+        age=max(0,time.time()-claim.stat().st_mtime)
+        if not ack.is_file():
+            if age>=ACK_TIMEOUT:
+                self.notify("ack-"+jid[:55],"🚨❗ BTC-Lab: подтверждение отправки в чат не получено. Проверь Brave. Автоповтора нет.")
+            return True
+        with ack.open("rb") as f:
+            data=json.loads(f.read(2048))
+        status=data.get("status")
+        if status=="blocked":
+            self.notify("b-"+jid[:60],"🚨❗ BTC-Lab: отправка заблокирована. Проверь лимит чата или Brave. Автоповтора нет.")
+        elif status=="clicked" and age>=CONTINUATION_TIMEOUT:
+            self.notify("idle-"+jid[:55],"🚨❗ BTC-Lab: 90 минут без следующего задания после отправки. Проверь лимит чата или завершение этапа. Автоповтора нет.")
+        return True
+
     def publish(self,job,result):
         jid=job["id"]
+        if self.watch_claim(jid):
+            return
         with self.lock:
             if (self.control/"claims"/(jid+".json")).exists():
                 return
@@ -124,7 +149,7 @@ class Relay:
             event=self.event
             overdue=event is not None and self.pending_since is not None and time.monotonic()-self.pending_since>300
         if overdue:
-            self.notify("wait-"+event["id"][:55],"🚨 BTC-Lab: результат готов, но чат не получил запрос. Проверь Brave.")
+            self.notify("wait-"+event["id"][:55],"🚨❗ BTC-Lab: результат готов, но чат не получил запрос. Проверь Brave.")
         return event is not None
 
     def request(self,method,path,body):
@@ -154,7 +179,7 @@ class Relay:
             else:
                 answer={"ok":False}
         if alert:
-            threading.Thread(target=self.notify,args=(alert,"🚨 BTC-Lab: отправка в чат не подтверждена. Проверь Brave."),daemon=True).start()
+            threading.Thread(target=self.notify,args=(alert,"🚨❗ BTC-Lab: отправка заблокирована. Проверь лимит чата или Brave. Автоповтора нет."),daemon=True).start()
         return answer
 
     def start(self):
