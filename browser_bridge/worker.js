@@ -15,12 +15,12 @@ async function composerAction(expected,text=null){
   const visible=e=>!!e&&e.isConnected&&e.getClientRects().length>0&&
     getComputedStyle(e).visibility==="visible"&&
     !e.closest('[hidden],[inert],[aria-hidden="true"]');
-  const stopping=()=>[...document.querySelectorAll('[data-testid="stop-button"],button[aria-label="Stop generating"],button[aria-label="Остановить генерацию"]')].some(visible);
+  const stopping=()=>[...document.querySelectorAll('[data-testid="stop-button"],button[aria-label="Stop generating"],button[aria-label="Остановить генерацию"],[data-composer-footer-responsive] button[aria-label="Остановить"],[data-composer-footer-responsive] button[aria-label="Stop"]')].some(visible);
   const editable=e=>visible(e)&&(e.isContentEditable||e.tagName==="TEXTAREA")&&
     !e.disabled&&!e.readOnly&&!e.closest('[aria-disabled="true"]');
   const editors='textarea,[contenteditable="true"],[contenteditable="plaintext-only"]';
-  const anchors='#prompt-textarea,[data-testid="prompt-textarea"],[data-testid="composer-input"],[data-testid="composer-textarea"]';
-  const sendSelector='button[data-testid="send-button"],button[aria-label="Send message"],button[aria-label="Отправить сообщение"]';
+  const anchors='#prompt-textarea,[data-testid="prompt-textarea"],[data-testid="composer-input"],[data-testid="composer-textarea"],[data-composer-input],[data-composer-markdown][role="textbox"]';
+  const sendSelector='button[data-testid="send-button"],button[aria-label="Send message"],button[aria-label="Отправить сообщение"],button[type="submit"][aria-label="Отправить"],button[type="submit"][aria-label="Send"]';
   const findEditor=()=>{
     const nodes=new Set();
     for(const a of document.querySelectorAll(anchors)){
@@ -57,7 +57,7 @@ async function composerAction(expected,text=null){
     if(!correctChat()||stopping())return "not_ready";
     const current=findEditor().p;
     if(!current||draft(current)!==text.trim())return "draft_changed";
-    const scope=current.closest("form");
+    const scope=current.closest("[data-composer-footer-responsive]")||current.closest("form");
     const buttons=[...(scope||document).querySelectorAll(sendSelector)]
       .filter(e=>visible(e)&&!e.disabled&&e.getAttribute("aria-disabled")!=="true");
     if(buttons.length>1)return "send_ambiguous";
