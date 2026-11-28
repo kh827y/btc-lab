@@ -305,11 +305,9 @@ def listen():
                 if key=="0":
                     print("Stop requested. Finishing any active task safely.",flush=True)
                     stop.set()
-                elif key=="1":
-                    print("Runner active.",flush=True)
     threading.Thread(target=keyboard,daemon=True).start()
     last_cloud_check=float("-inf")
-    print("Listening. 1 = keep running, 0 = stop safely (no Enter).",flush=True)
+    print("Listening. Press 0 to stop safely (no Enter).",flush=True)
     try:
         while not stop.is_set():
             try:
