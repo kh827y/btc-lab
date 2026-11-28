@@ -31,8 +31,17 @@ async function insertAndSend(expected,text){
   // Confirm the exact prepared user draft, not any assistant text.
   if((p.value??p.innerText??"").trim()!==text.trim())return "draft_changed";
   send.click();
-  // A click is not proof of server acceptance; never auto-retry a claimed event.
-  return "clicked";
+  // Observe only composer/control state, never the assistant's response.
+  // This is a local observation, not proof of server acceptance.
+  for(let i=0;i<20;i++){
+    await new Promise(r=>setTimeout(r,500));
+    if(location.origin+location.pathname!==expected)return "wrong_chat";
+    if(document.querySelector('[data-testid="stop-button"],button[aria-label="Stop generating"]'))return "clicked";
+    const current=document.querySelector('#prompt-textarea');
+    if(current&&!(current.value??current.innerText??"").trim()&&
+       (current.isContentEditable||current.tagName==="TEXTAREA")&&current.getAttribute("aria-disabled")!=="true")return "clicked";
+  }
+  return "send_not_confirmed";
 }
 async function inject(tabId,func,args){const r=await chrome.scripting.executeScript({target:{tabId},func,args});return r[0]?.result;}
 async function poll(){
