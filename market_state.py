@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from data_logic import at, parse_utc, validate_brief, is_real_number
+from live_derivatives import run as collect_derivatives
 
 URL = "https://raw.githubusercontent.com/kh827y/btc-market-data/main/btc-monitor/data/brief.json"
 ROOT = Path(__file__).resolve().parent / "data/research/state_packets"
@@ -169,14 +170,84 @@ def packet(data, now):
                 "No LLM, trading signal, forecast, or changes to monitoring/journals."]}
 
 
+def perpetual_context(report, now):
+    """Independent direct REST observations; never substitute the USD basket."""
+    observed = report.get("observed_end_utc")
+    retrieved = parse_utc(report.get("retrieved_utc"))
+    stamp = parse_utc(observed)
+    hours = (now-stamp).total_seconds()/3600 if stamp is not None else None
+    valid = (report.get("version") == "live-derivatives-readiness-v1" and
+             report.get("market") == "Binance USD-M BTCUSDT perpetual" and
+             stamp is not None and retrieved is not None and stamp <= retrieved <= now and
+             0 <= hours <= 4)
+    items = []
+    def add(name, value, unit, complete=True, coverage=None):
+        ok = valid and complete and is_real_number(value)
+        items.append({"id":name,"value":value if ok else None,"unit":unit,
+            "status":"usable" if ok else ("invalid_or_stale_source" if not valid else "incomplete_or_invalid"),
+            "observed_at":observed,"retrieved_utc":report.get("retrieved_utc"),
+            "age_h":round(hours,2) if hours is not None else None,"max_age_h":4,
+            "scope":"Binance USD-M BTCUSDT perpetual only",
+            "comparison_key":"Binance USD-M BTCUSDT perpetual|"+name,
+            "coverage":coverage})
+    q = report.get("oi_latest_checked_btc")
+    add("oi_quantity",q,"BTC",is_real_number(q) and q>0)
+    add("premium_last_closed",report.get("premium_last_closed_fraction"),"fraction")
+    for days in (1,7,28):
+        w = at(report,"windows."+str(days),{})
+        if not isinstance(w,dict):
+            w = {}
+        a,b = w.get("oi_start_btc"),w.get("oi_end_btc")
+        n = w.get("oi_checked_points")
+        oi_ok = (is_real_number(a) and a>0 and is_real_number(b) and b>0 and
+                 is_real_number(q) and b==q and type(n) is int and 2<=n<=days*24+1 and
+                 w.get("oi_expected_points")==days*24+1)
+        # Exact endpoints suffice for the change; do not imply complete interior coverage.
+        add("oi_quantity_change_"+str(days)+"d",100*(b/a-1) if oi_ok else None,
+            "percent BTC quantity",oi_ok,{"valid":n,"expected":days*24+1})
+        n = w.get("premium_valid_hours")
+        p_ok = type(n) is int and n==days*24 and w.get("premium_expected_hours")==days*24
+        coverage = {"valid":n,"expected":days*24}
+        add("premium_mean_"+str(days)+"d",w.get("premium_mean_close_fraction"),"fraction",p_ok,coverage)
+        share = w.get("premium_negative_hour_share")
+        add("premium_negative_share_"+str(days)+"d",share,"fraction",
+            p_ok and is_real_number(share) and 0<=share<=1,coverage)
+    return items
+
+
 def run(root=ROOT):
     raw=fetch()
-    now=datetime.now(timezone.utc)
-    report=packet(json.loads(raw),now)
-    report["brief_sha256"]=sha(raw)
-    folder=Path(root)/now.strftime("%Y%m%dT%H%M%S%fZ")
+    brief_received=datetime.now(timezone.utc)
+    data=json.loads(raw)
+    validate_brief(data)
+    folder=Path(root)/brief_received.strftime("%Y%m%dT%H%M%S%fZ")
     folder.mkdir(parents=True,exist_ok=False)
     (folder/"brief.json").write_bytes(raw)
+    try:
+        derivative_path=collect_derivatives(root=folder/"binance_perpetual")
+        derivative_raw=derivative_path.read_bytes()
+        derivative_report=json.loads(derivative_raw)
+        provenance={"report_path":derivative_path.relative_to(folder).as_posix(),
+                    "report_sha256":sha(derivative_raw),
+                    "sources":derivative_report.get("sources",[]),
+                    "errors":derivative_report.get("errors",{}),
+                    "oi_unit_check_rejected":derivative_report.get("oi_unit_check_rejected",[]),
+                    "limitations":derivative_report.get("limitations",[])}
+    except (OSError,ValueError,KeyError,TypeError,OverflowError) as exc:
+        derivative_report={}
+        provenance={"errors":{"collector":str(exc)[:300]}}
+    now=datetime.now(timezone.utc)
+    report=packet(data,now)
+    report["version"]="market-state-v2"
+    report["retrieved_utc"]=brief_received.isoformat()
+    report["assembled_utc"]=now.isoformat()
+    report["brief_sha256"]=sha(raw)
+    report["families"]["binance_perpetual"]=perpetual_context(derivative_report,now)
+    report["binance_perpetual_provenance"]=provenance
+    report["not_in_packet"][0]="Multi-venue OI quantity unavailable; separate Binance perpetual only."
+    if any(x["status"]!="usable" for x in report["families"]["binance_perpetual"]):
+        report["coverage_gaps"].append("binance_perpetual:partial_or_unavailable")
+    report["limitations"].append("Direct Binance fields use their own observation/retrieval times; premium index is not funding, trade basis or directional positioning. No inferred global quantity.")
     target=folder/"market_state.json"
     with target.open("x",encoding="utf-8") as f:
         json.dump(report,f,ensure_ascii=False,indent=2,allow_nan=False)
