@@ -55,6 +55,9 @@ def packet(data, now):
             q = {}
         value = at(data, path)
         obs = q.get("observed_at")
+        # FRED quality checks are family-level; use the actual series date.
+        if path.startswith("macro.fred."):
+            obs = at(data, path.rsplit(".",1)[0]+".date")
         hours, precision = age(obs, now, cutoff)
         status = q.get("status", "unchecked")
         source_status = at(data, "sources."+source+".status")
@@ -144,11 +147,17 @@ def packet(data, now):
         add("macro",name,path+".value","macro."+key,"macro_etf",
             "index" if name.startswith("usd") else "percent",168,
             "Source series; no substitution. Family-level upstream check.",path+".status")
-    # Do not add a price classification as a verified number; existing technical
-    # facts are retained in the raw file. No score, scenario selection or forecast.
+    close_usable = any(x["id"]=="daily_close" and x["status"]=="usable" for x in families["price"])
+    structure = at(data,"btc_technicals.swings.classification")
+    technical_context = {
+        "observed_at":at(data,"metric_quality.checks.price.closed_daily_weekly.observed_at"),
+        "classification":structure if close_usable and structure in ("HH_HL","LH_LL","mixed","MIXED","unknown") else None,
+        "source":"Binance closed spot candles; swing labels are upstream descriptions, not forecasts.",
+    }
     return {"version":"market-state-v1", "source_url":URL,
             "as_of_utc":data["as_of_utc"], "retrieved_utc":now.isoformat(),
             "snapshot_age_h":round(snapshot_age,2), "families":families,
+            "technical_context":technical_context,
             "coverage_gaps":data.get("coverage_gaps",[]),
             "not_in_packet":["OI quantity and perpetual premium history not available in selected brief fields",
                 "News, expectations and publication-time verification not collected here",
