@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from local_runner import ROOT, CONTROL, safe_path, new_bytes, read_bytes, encoded
+from local_runner import ROOT, CONTROL, safe_path, new_bytes, read_bytes, encoded, START_BAT
 
 def main():
     if os.name!="nt" or Path.cwd()!=ROOT:
@@ -30,6 +30,7 @@ def main():
         nonce=secrets.token_hex(8)
         files=[("local_relay.py",read_bytes(ROOT/"local_relay.py",128*1024)),
                ("controller.py",read_bytes(ROOT/"local_runner.py",128*1024)),
+               ("start.bat",START_BAT),
                ("browser_bridge/worker.js",read_bytes(ROOT/"browser_bridge"/"worker.js",128*1024)),
                ("browser_bridge/popup.js",read_bytes(ROOT/"browser_bridge"/"popup.js",128*1024))]
         for name,raw in files:
