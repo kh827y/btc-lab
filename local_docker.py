@@ -226,6 +226,7 @@ def run(job,folder,control,fetch,utc):
         preflight(archive=job["task"]=="archive_check")
         pin=TEST_IMAGE_FILE if job["task"]=="unit_tests" else "docker_image.txt"
         image=under(control/pin).read_text(encoding="ascii").strip()
+        result["image_id"]=image
         code=stage(job,folder,fetch)
         name="btc-lab-"+uuid.uuid4().hex
         phase="create"
@@ -253,7 +254,9 @@ def run(job,folder,control,fetch,utc):
             write(folder/"report.json",payload)
             result.update(report=report,report_sha256=hashlib.sha256(payload).hexdigest(),
                           status=report["status"],exit_code=rc)
-    except (OSError,ValueError,KeyError,TypeError,subprocess.SubprocessError) as exc:
+            if report["status"]=="error":
+                result["log_tail"]=raw[-12000:].decode("utf-8","replace")
+    except (OSError,ValueError,KeyError,TypeError,zipfile.BadZipFile,subprocess.SubprocessError) as exc:
         result.update(stage=phase,error_type=type(exc).__name__)
         print("Docker:",phase,type(exc).__name__,str(exc)[:220],flush=True)
     finally:
