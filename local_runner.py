@@ -30,7 +30,7 @@ MAX_OUTPUT = 16 * 1024 * 1024
 MAX_REPORT = 256 * 1024
 POLL_SECONDS = 15
 CLOUD_POLL_SECONDS = 75
-START_BAT = b'@echo off\r\ncd /d "%~dp0..\\\\.."\r\n.venv\\\\Scripts\\\\python.exe -I -S -B "%~dp0controller.py" listen\r\nif errorlevel 1 pause\r\n'
+START_BAT = b'@echo off\r\ncd /d "%~dp0..\\.."\r\n.venv\\Scripts\\python.exe -I -S -B "%~dp0controller.py" listen\r\nif errorlevel 1 pause\r\n'
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 SHA = re.compile(r"[0-9a-f]{40}")
 REPO = re.compile(r"kh827y/btc-lab-bridge", re.I)
@@ -268,7 +268,7 @@ def setup():
     new_bytes(CONTROL/"token.dpapi",dpapi(token.encode("utf-8")))
     if bot:
         new_bytes(CONTROL/"telegram.dpapi",dpapi(bot.encode("utf-8")))
-    # This launcher is copied once into ignored local data and never auto-updated.
+    # Owner refresh may replace this launcher; no unattended controller update.
     new_bytes(CONTROL/"start.bat",START_BAT)
     remote_create(repo,token,"ready.json",{"version":"docker-relay-v1","status":"ready",
                   "tasks":sorted(TASKS),"created_utc":utc()})
