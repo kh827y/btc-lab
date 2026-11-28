@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 from data_logic import at, parse_utc, validate_brief, is_real_number
 from live_derivatives import run as collect_derivatives
 from live_macro_primary import collect as collect_macro
+from spot_breadth import collect as collect_spot_breadth
 
 URL = "https://raw.githubusercontent.com/kh827y/btc-market-data/main/btc-monitor/data/brief.json"
 ROOT = Path(__file__).resolve().parent / "data/research/state_packets"
@@ -299,7 +300,14 @@ def run(root=ROOT):
         macro={"version":"live-macro-primary-v1","series":[],"error":str(exc)[:300]}
     now=datetime.now(timezone.utc)
     report=packet(data,now)
-    report["version"]="market-state-v5"
+    report["version"]="market-state-v6"
+    try:
+        breadth=collect_spot_breadth(folder,report["demand_context"],now)
+    except (OSError,ValueError,KeyError,TypeError,AttributeError,OverflowError) as exc:
+        breadth={"version":"spot-breadth-v1","baskets":{},"error":str(exc)[:300]}
+    report["spot_breadth"]=breadth
+    if len(breadth["baskets"])!=2 or any(x["status"]!="usable" for x in breadth["baskets"].values()):
+        report["coverage_gaps"].append("spot_breadth:partial_or_unavailable")
     report["direct_macro"]=macro
     if len(macro["series"])!=4 or any(x["status"]!="usable" for x in macro["series"]):
         report["coverage_gaps"].append("direct_macro:partial_or_unavailable")
