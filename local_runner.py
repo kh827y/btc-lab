@@ -262,6 +262,7 @@ def setup():
     for name in ("local_relay.py","local_docker.py"):
         new_bytes(CONTROL/name,safe_path(ROOT/name).read_bytes())
     local_docker.install(CONTROL)
+    local_docker.prepare_test_image(CONTROL)
     for name in ("manifest.json","popup.html","popup.js","worker.js"):
         new_bytes(CONTROL/"browser_bridge"/name,safe_path(ROOT/"browser_bridge"/name).read_bytes())
     new_bytes(CONTROL/"config.json",encoded({"repo":repo,"relay_key":key,"telegram_chat":chat}))
