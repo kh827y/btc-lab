@@ -16,7 +16,7 @@ class NoRedirect(HTTPRedirectHandler):
 def telegram(token, method, body):
     if not re.fullmatch(r"[0-9]{5,16}:[A-Za-z0-9_-]{20,100}",token):
         raise ValueError("Invalid Telegram token")
-    if method not in ("getUpdates","sendMessage"):
+    if method not in ("getMe","getUpdates","sendMessage"):
         raise ValueError("Invalid Telegram method")
     try:
         req=Request("https://api.telegram.org/bot"+token+"/"+method,
@@ -37,17 +37,30 @@ def configure_bot(getpass,input_fn=input):
     token=getpass("New Telegram bot token (Enter to skip, hidden): ").strip()
     if not token:
         return None,None
+    me=telegram(token,"getMe",{})
+    username=me.get("username") if isinstance(me,dict) else None
+    if not isinstance(username,str) or not re.fullmatch(r"[A-Za-z0-9_]{5,32}",username):
+        raise ValueError("Telegram did not return a valid bot username")
     challenge="/start "+secrets.token_hex(6)
-    print("Send this exact message to the new bot in a private chat:",challenge)
-    input_fn("Then press Enter here: ")
-    updates=telegram(token,"getUpdates",{"limit":100,"timeout":0,"allowed_updates":["message"]})
-    ids={u["message"]["chat"]["id"] for u in updates if isinstance(u,dict)
-        and u.get("message",{}).get("text")==challenge
-        and u["message"].get("chat",{}).get("type")=="private"
-        and type(u["message"]["chat"].get("id")) is int
-        and u["message"]["chat"]["id"]>0}
-    if len(ids)!=1:
-        raise ValueError("No unique private chat found. Use a new bot and repeat.")
+    print("Open this exact bot: https://t.me/"+username,flush=True)
+    print("Send this exact message to the bot in a private chat:",challenge,flush=True)
+    input_fn("Only after sending the message, press Enter here: ")
+    print("Checking Telegram for your message (up to 40 seconds)...",flush=True)
+    deadline=time.monotonic()+40
+    while True:
+        updates=telegram(token,"getUpdates",{"limit":100,"timeout":5,"allowed_updates":["message"]})
+        ids={u["message"]["chat"]["id"] for u in updates if isinstance(u,dict)
+            and u.get("message",{}).get("text")==challenge
+            and u["message"].get("chat",{}).get("type")=="private"
+            and type(u["message"]["chat"].get("id")) is int
+            and u["message"]["chat"]["id"]>0}
+        if len(ids)>1:
+            raise ValueError("Challenge received from multiple private chats; repeat setup")
+        if len(ids)==1:
+            break
+        if time.monotonic()>=deadline:
+            raise ValueError("Challenge not received. Verify bot username, token and whether another app consumes its updates. Reuse the same bot.")
+        time.sleep(1)
     chat=ids.pop()
     telegram(token,"sendMessage",{"chat_id":chat,"text":"✅ BTC-Lab: уведомления подключены."})
     return token,chat
