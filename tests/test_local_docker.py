@@ -63,3 +63,29 @@ class LocalDockerTest(unittest.TestCase):
                     code.mkdir()
                     with self.assertRaises(ValueError):
                         d.unpack_code(archive(bad),code,commit)
+
+
+    def test_image_v2_reuses_pinned_v1_and_adds_git(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            control=root/"control"
+            control.mkdir()
+            old="sha256:"+"c"*64
+            new="sha256:"+"d"*64
+            (control/"test_image.txt").write_text(old,encoding="ascii")
+            def docker(*args,**kwargs):
+                if args[:2]==("image","inspect"):
+                    return new if args[2]==d.TEST_TAG else old
+                if args[0]=="tag":
+                    self.assertEqual(args[1],old)
+                    return ""
+                self.fail(str(args))
+            def build(args,**kwargs):
+                spec=(Path(args[-1])/"Dockerfile").read_text()
+                self.assertIn("apt-get install -y --no-install-recommends git",spec)
+                self.assertNotIn("pip install",spec)
+                self.assertEqual(list(Path(args[-1]).iterdir()),[Path(args[-1])/"Dockerfile"])
+            with patch.object(d,"ROOT",root),patch.object(d,"preflight"),patch.object(d,"docker",side_effect=docker),patch.object(d.subprocess,"run",side_effect=build):
+                d.prepare_test_image(control)
+            self.assertEqual((control/"test_image.txt").read_text(),old)
+            self.assertEqual((control/d.TEST_IMAGE_FILE).read_text(),new)
