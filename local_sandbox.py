@@ -116,7 +116,6 @@ def run(job,folder,control,fetch,utc):
     owned_id=None
     connection=None
     exe=None
-    started=False
     out=folder/"output"
     phase="preflight"
     try:
@@ -140,7 +139,6 @@ def run(job,folder,control,fetch,utc):
         probe.write(folder/"session_id.txt",sid.encode("ascii"))
         owned_id=sid
         start=cli(exe,"start","--id",sid,"--config",xml.decode("utf-8"),timeout=90)
-        started=True
         # Require acknowledgement of our ID before connecting.
         answer=start.stdout.decode("utf-8",errors="replace")
         if sid.replace("-","").lower() not in answer.replace("-","").lower():
@@ -194,7 +192,10 @@ def run(job,folder,control,fetch,utc):
             result["session_stopped"]=None
         if connection is not None and connection.poll() is None:
             # Only the CLI connection process we launched, no global taskkill.
-            connection.terminate()
+            try:
+                connection.terminate()
+            except OSError:
+                pass
         try:
             log=small(out/"boot.log",MAX_LOG)
             if log is not None:
