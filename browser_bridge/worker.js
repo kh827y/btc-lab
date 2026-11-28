@@ -1,8 +1,8 @@
 const BASE="http://127.0.0.1:18746";
 let busy=false;
-chrome.alarms.create("btc-lab",{periodInMinutes:1});
+chrome.alarms.get("btc-lab").then(a=>{if(a?.periodInMinutes!==0.5)chrome.alarms.create("btc-lab",{periodInMinutes:0.5});});
 chrome.alarms.onAlarm.addListener(a=>{if(a.name==="btc-lab")poll();});
-chrome.runtime.onMessage.addListener((m,sender)=>{if(sender.id===chrome.runtime.id&&sender.url===chrome.runtime.getURL("popup.html")&&m.action==="poll")poll();});
+chrome.runtime.onMessage.addListener((m,sender)=>{if(sender.id===chrome.runtime.id&&sender.url===chrome.runtime.getURL("popup.html")&&m.action==="poll")poll(true);});
 async function api(key,path,body){
   const r=await fetch(BASE+path,{method:body?"POST":"GET",headers:{"Authorization":"Bearer "+key,...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(5000)});
   if(!r.ok)throw Error("Local relay HTTP "+r.status);
@@ -45,26 +45,26 @@ async function composerAction(expected,text=null){
   // Ignore controls outside the current composer, e.g. retained message controls.
   // If the editor is temporarily absent, remain conservative and wait for a visible
   // generation stop control, rather than attempting to send.
-  const stopping=()=>{
-    const p=findEditor().p;
+  const stopping=(p=findEditor().p)=>{
     const scope=scopeOf(p);
     return [...(scope||document).querySelectorAll(stopSelector)].some(visible);
   };
   const draft=p=>(p.value??p.innerText??"").trim();
-  if(stopping())return "busy";
   const found=findEditor();
+  if(stopping(found.p))return "busy";
   if(!found.p)return found.state;
   if(draft(found.p))return "draft_exists";
   if(text===null)return "ready";
   const p=found.p;
   p.focus();
-  if(!correctChat()||stopping()||draft(p))return "not_ready";
+  if(!correctChat()||stopping(p)||draft(p))return "not_ready";
   if(!document.execCommand("insertText",false,text))return "insert_failed";
   // Allow the normal UI to render an enabled send button.
   for(let i=0;i<12;i++){
     await new Promise(r=>setTimeout(r,200));
-    if(!correctChat()||stopping())return "not_ready";
+    if(!correctChat())return "not_ready";
     const current=findEditor().p;
+    if(stopping(current))return "not_ready";
     if(!current||draft(current)!==text.trim())return "draft_changed";
     const scope=current.closest("[data-composer-footer-responsive]")||current.closest("form");
     const buttons=[...(scope||document).querySelectorAll(sendSelector)]
@@ -76,8 +76,8 @@ async function composerAction(expected,text=null){
       for(let j=0;j<20;j++){
         await new Promise(r=>setTimeout(r,500));
         if(!correctChat())return "wrong_chat";
-        if(stopping())return "clicked";
         const next=findEditor().p;
+        if(stopping(next))return "clicked";
         if(next&&!draft(next))return "clicked";
       }
       return "send_not_confirmed";
@@ -86,11 +86,11 @@ async function composerAction(expected,text=null){
   return "send_unavailable";
 }
 async function inject(tabId,func,args){const r=await chrome.scripting.executeScript({target:{tabId},func,args});return r[0]?.result;}
-async function poll(){
+async function poll(checkComposer=false){
  if(busy)return;busy=true;
  let s,claimed=null;
  try{
-  s=await chrome.storage.local.get(["armed","url","tabId","key"]);
+  s=await chrome.storage.local.get(["armed","url","tabId","key","status"]);
   if(!s.armed)return;
   const event=await api(s.key,"/next");
   const t=await chrome.tabs.get(s.tabId).catch(()=>null);
@@ -98,6 +98,13 @@ async function poll(){
     if(event.id){const grant=await api(s.key,"/claim",{id:event.id});
     if(grant.ok)await api(s.key,"/ack",{id:event.id,status:"blocked"});}
     await chrome.storage.local.set({armed:false,status:"Чат закрыт или изменён. Привяжи заново."});return;
+  }
+  // Idle polling stays in the extension worker: never scan the long chat DOM
+  // without a real result, except when the owner explicitly binds the tab.
+  if(!event.id&&!checkComposer){
+    const status="Связь с исполнителем есть. Ожидаю задание.";
+    if(s.status!==status)await chrome.storage.local.set({status});
+    return;
   }
   const state=await inject(s.tabId,composerAction,[s.url]);
   if(!event.id){await chrome.storage.local.set({status:state==="ready"?"Поле ввода найдено. Ожидаю задание.":"Проверка поля ввода: "+state});return;}
