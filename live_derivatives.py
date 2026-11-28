@@ -143,7 +143,8 @@ def run(root=ROOT, request=fetch):
     target=folder/"derivatives_readiness.json"
     with target.open("x",encoding="utf-8") as f:
         json.dump(report,f,indent=2,allow_nan=False)
-    print("Send:",target,"SHA-256:",hashlib.sha256(target.read_bytes()).hexdigest())
+    print("Derivatives source:",target,"SHA-256:",hashlib.sha256(target.read_bytes()).hexdigest())
+    return target
 
 
 if __name__=="__main__":
