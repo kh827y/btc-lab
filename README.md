@@ -219,3 +219,6 @@ DELEVER-001 завершён как описательное исследова�
 
 ### Windows Sandbox: проба архивов без Docker
 Перед установкой ретранслятора включить Windows Sandbox через optionalfeatures.exe, выполнить update.bat и run_sandbox_probe.bat. Смотри LOCAL_RUNNER.md, раздел «Дополнение». Проверка офлайн, только чтение data/binance_1m, новый отдельный output на D, наблюдение свободного места C. Закрыть песочницу вручную и прислать sandbox_readiness.json. Полностью автоматический локальный маршрут ещё не подключён.
+
+### Актуальный запуск без Docker
+Проба Sandbox успешна. Теперь setup_local_runner.bat устанавливает фиксированный локальный ретранслятор с offline archive_check и облачным market_state. Следовать последнему разделу LOCAL_RUNNER.md. CLI Windows Sandbox, полный цикл с Brave и Telegram ещё предстоит проверить; не оставлять без наблюдения.
