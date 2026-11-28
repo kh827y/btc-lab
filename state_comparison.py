@@ -63,6 +63,8 @@ def compare(before,after):
             t,u=observed(x),observed(y)
             if t is None or u is None:
                 item["status"]="invalid_observation_time"
+            elif (t>a.date() or u>b.date()) if y["time_precision"]=="date_only" else (t>a or u>b):
+                item["status"]="future_observation"
             elif u<t:
                 item["status"]="observation_regressed"
             elif u==t:
