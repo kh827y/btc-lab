@@ -1,0 +1,49 @@
+name: BTC Lab market state check
+on:
+  push:
+    branches: [main]
+    paths: [cloud_job.json]
+permissions:
+  contents: read
+jobs:
+  market-state:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run public market state check
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          import market_state
+          job=json.loads(Path("cloud_job.json").read_text(encoding="utf-8"))
+          if set(job)!={"id","task"} or job["task"]!="market_state" or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}",job["id"]):
+              raise ValueError("Invalid cloud job")
+          root=Path("data/research/cloud_state")
+          market_state.run(root=root)
+          reports=list(root.glob("*/market_state.json"))
+          if len(reports)!=1:
+              raise ValueError("Expected one report")
+          raw=reports[0].read_bytes()
+          if len(raw)>256*1024:
+              raise ValueError("Report exceeds limit")
+          report=json.loads(raw)
+          print("BTC_LAB_REPORT_BEGIN")
+          print(json.dumps(report,ensure_ascii=True,indent=2,allow_nan=False))
+          print("BTC_LAB_REPORT_END")
+          PY
+      - name: Upload public market data report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-state
+          path: data/research/cloud_state/
+          if-no-files-found: ignore
+          retention-days: 3
