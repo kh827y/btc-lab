@@ -101,7 +101,7 @@ class Relay:
             if self.event is None:
                 self.pending_since=time.monotonic()
             self.event={"id":jid,"message":
-                "BTC-Lab: облачная проверка "+jid+" завершено ("+status+
+                "BTC-Lab: задание "+jid+" завершено ("+status+
                 "). Прочитай через GitHub "+self.repo+"/results/"+jid+
                 ".json, проверь результат и продолжай по ROADMAP.md. "+
                 "При необходимости участия владельца создай progress.json с kind=attention."}
